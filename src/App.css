@@ -1,0 +1,188 @@
+/* 1. 기본 초기화 및 변수 설정 */
+:root {
+  --primary-color: #4f46e5;      /* 포인트 컬러 (인디고) */
+  --bg-color: #f3f4f6;           /* 전체 배경 */
+  --chat-bg: #ffffff;            /* 채팅창 배경 */
+  --ai-bubble-bg: #f3f4f6;       /* AI 말풍선 배경 */
+  --border-color: #e5e7eb;       /* 구분선 컬러 */
+  --text-main: #111827;          /* 메인 텍스트 */
+  --text-muted: #6b7280;         /* 부수적 텍스트 */
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--bg-color);
+}
+
+/* 2. 메인 컨테이너 레이아웃 */
+.container {
+  width: 95%;
+  max-width: 800px;
+  height: 85vh;
+  background: var(--chat-bg);
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* 3. 헤더 영역 */
+header {
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status {
+  font-size: 0.85rem;
+  color: #10b981; /* 온라인 녹색 */
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.status::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background-color: currentColor;
+  border-radius: 50%;
+}
+
+/* 4. 채팅창 (스크롤 영역) */
+.chat-window {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background-image: radial-gradient(#e5e7eb 0.5px, transparent 0.5px);
+  background-size: 20px 20px; /* 미세한 도트 배경 */
+}
+
+/* 5. 메시지 말풍선 스타일 */
+.message {
+  display: flex;
+  gap: 12px;
+  max-width: 85%;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.bubble {
+  background: var(--ai-bubble-bg);
+  padding: 1rem 1.2rem;
+  border-radius: 4px 18px 18px 18px;
+  line-height: 1.6;
+  font-size: 1rem;
+  color: var(--text-main);
+  white-space: pre-wrap; /* 줄바꿈 유지 */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+/* 6. 입력 영역 */
+.input-area {
+  padding: 1.5rem;
+  background: var(--chat-bg);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 12px;
+}
+
+input {
+  flex: 1;
+  padding: 0.8rem 1.2rem;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input:focus {
+  border-color: var(--primary-color);
+}
+
+button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover:not(:disabled) {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+button:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* 7. 로딩 상태 및 빈 화면 */
+.empty-state {
+  margin: auto;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.loader {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
