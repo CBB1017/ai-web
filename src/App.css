@@ -1,62 +1,142 @@
-/* 1. 기본 초기화 및 변수 설정 */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+/* 1. 글로벌 테마 (Gemini 스타일의 블루퍼플 톤) */
 :root {
-  --primary-color: #4f46e5;      /* 포인트 컬러 (인디고) */
-  --bg-color: #f3f4f6;           /* 전체 배경 */
-  --chat-bg: #ffffff;            /* 채팅창 배경 */
-  --ai-bubble-bg: #f3f4f6;       /* AI 말풍선 배경 */
-  --border-color: #e5e7eb;       /* 구분선 컬러 */
-  --text-main: #111827;          /* 메인 텍스트 */
-  --text-muted: #6b7280;         /* 부수적 텍스트 */
+  --primary: #5b58eb;
+  --primary-gradient: linear-gradient(135deg, #5b58eb 0%, #8b5cf6 100%);
+  --bg-color: #f4f5f9;
+  --surface: #ffffff;
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --border: #e5e7eb;
+  --ai-bubble: #f9fafb;
+  --user-bubble: #eef2ff;
+  --danger: #ef4444;
 }
 
-#root {
-  width: 100%;
-  height: 100vh;
+body {
   margin: 0;
-  padding: 0;
+  font-family: 'Pretendard', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: var(--bg-color);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* 2. 메인 컨테이너 레이아웃 */
-.container {
-  width: 95%;
-  max-width: 800px;
-  height: 85vh;
-  background: var(--chat-bg);
+/* =========================================
+   2. 로그인 화면 (Login.tsx)
+========================================= */
+.login-container {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  padding: 3rem 2.5rem;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
+  text-align: center;
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.login-container form {
   display: flex;
   flex-direction: column;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
+  gap: 16px;
 }
 
-/* 3. 헤더 영역 */
+.login-container input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1rem 1.2rem;
+  background: var(--bg-color);
+  border: 2px solid transparent;
+  border-radius: 16px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.login-container input:focus {
+  outline: none;
+  border-color: #c7d2fe;
+  background: var(--surface);
+  box-shadow: 0 0 0 4px rgba(91, 88, 235, 0.1);
+}
+
+.login-container button {
+  width: 100%;
+  padding: 1rem;
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 10px;
+}
+
+.login-container button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(91, 88, 235, 0.3);
+}
+
+/* =========================================
+   3. 채팅 화면 (Chat.tsx)
+========================================= */
+.container {
+  width: 95%;
+  max-width: 850px;
+  height: 85vh;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  border-radius: 28px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* 헤더 */
 header {
-  padding: 1.2rem 1.5rem;
-  border-bottom: 1px solid var(--border-color);
+  padding: 1.2rem 1.8rem;
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
 }
 
 .logo {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--primary-color);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.mode-selector select {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-color);
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--text-muted);
+  outline: none;
+  cursor: pointer;
 }
 
 .status {
   font-size: 0.85rem;
-  color: #10b981; /* 온라인 녹색 */
+  font-weight: 600;
+  color: #10b981;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .status::before {
@@ -65,124 +145,146 @@ header {
   height: 8px;
   background-color: currentColor;
   border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
 }
 
-/* 4. 채팅창 (스크롤 영역) */
+/* 채팅 영역 */
 .chat-window {
   flex: 1;
-  padding: 1.5rem;
+  padding: 2rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  background-image: radial-gradient(#e5e7eb 0.5px, transparent 0.5px);
-  background-size: 20px 20px; /* 미세한 도트 배경 */
+  gap: 1.8rem;
 }
 
-/* 5. 메시지 말풍선 스타일 */
+.chat-window::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-window::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 10px;
+}
+
+/* 말풍선 공통 */
 .message {
   display: flex;
-  gap: 12px;
-  max-width: 85%;
-  animation: fadeIn 0.3s ease;
+  gap: 16px;
+  max-width: 88%;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
+/* AI 아바타 & 말풍선 */
 .avatar {
-  width: 38px;
-  height: 38px;
-  background: var(--primary-color);
+  width: 42px;
+  height: 42px;
+  background: var(--primary-gradient);
   color: white;
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 0.8rem;
+  font-size: 1.1rem;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(91, 88, 235, 0.2);
 }
 
 .bubble {
-  background: var(--ai-bubble-bg);
-  padding: 1rem 1.2rem;
-  border-radius: 4px 18px 18px 18px;
+  background: var(--ai-bubble);
+  padding: 1.2rem 1.5rem;
+  border-radius: 4px 20px 20px 20px;
   line-height: 1.6;
-  font-size: 1rem;
+  font-size: 1.05rem;
   color: var(--text-main);
-  white-space: pre-wrap; /* 줄바꿈 유지 */
-  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  white-space: pre-wrap;
+  border: 1px solid var(--border);
 }
 
-/* 6. 입력 영역 */
+/* 입력 영역 */
 .input-area {
-  padding: 1.5rem;
-  background: var(--chat-bg);
-  border-top: 1px solid var(--border-color);
+  padding: 1.5rem 2rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
   display: flex;
   gap: 12px;
-}
-
-input {
-  flex: 1;
-  padding: 0.8rem 1.2rem;
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-input:focus {
-  border-color: var(--primary-color);
-}
-
-button {
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  width: 50px;
-  height: 50px;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
+}
+
+.input-area input {
+  flex: 1;
+  padding: 1.2rem 1.5rem;
+  background: var(--bg-color);
+  border: 1px solid transparent;
+  border-radius: 24px;
+  font-size: 1.05rem;
   transition: all 0.2s;
 }
 
-button:hover:not(:disabled) {
+.input-area input:focus {
+  outline: none;
+  background: var(--surface);
+  border-color: #c7d2fe;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.input-area button {
+  width: 54px;
+  height: 54px;
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.input-area button:hover:not(:disabled) {
   transform: scale(1.05);
-  filter: brightness(1.1);
+  box-shadow: 0 8px 16px rgba(91, 88, 235, 0.3);
 }
 
-button:disabled {
-  background: var(--text-muted);
-  cursor: not-allowed;
-}
-
-/* 7. 로딩 상태 및 빈 화면 */
-.empty-state {
-  margin: auto;
-  text-align: center;
+.input-area button:disabled {
+  background: var(--border);
   color: var(--text-muted);
-  font-size: 0.95rem;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
+.input-area .stop-btn {
+  background: var(--danger);
+  animation: pulse 1.5s infinite;
+}
+
+/* 로더 애니메이션 */
 .loader {
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid var(--primary-color);
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  animation: spin 1s linear infinite;
-  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Keyframes */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }

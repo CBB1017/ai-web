@@ -1,19 +1,44 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+
+// 💡 유저 정보 타입 정의
+interface UserInfo {
+    username: string;
+}
 
 interface AuthContextType {
     isAuthenticated: boolean;
+    isLoading: boolean;
+    user: UserInfo | null; // 💡 유저 객체 추가
     login: (username: string, pass: string) => Promise<void>;
     logout: () => void;
 }
 
-// 1. Context 생성 (외부 노출 X)
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 2. Provider 컴포넌트 (PascalCase로 정의 및 export)
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [isAuthenticated, setIsAuthenticated] = useState(() =>
-        localStorage.getItem('isLoggedIn') === 'true'
-    );
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [user, setUser] = useState<UserInfo | null>(null);
+
+    useEffect(() => {
+        const checkSession = async () => {
+            try {
+                const res = await fetch('/api/auth/check', { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json(); // 💡 백엔드에서 보낸 JSON 파싱
+                    setUser({ username: data.username }); // 상태에 저장
+                    setIsAuthenticated(true);
+                } else {
+                    setIsAuthenticated(false);
+                }
+            } catch {
+                setIsAuthenticated(false);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        checkSession();
+    }, []);
 
     const login = async (username: string, password: string) => {
         const response = await fetch('/api/auth/login', {
@@ -24,27 +49,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (response.ok) {
-            localStorage.setItem('isLoggedIn', 'true');
+            setUser({ username }); // 로그인 성공 시 상태 업데이트
             setIsAuthenticated(true);
         } else {
-            // 401 등 실패 시 에러 처리
             throw new Error("Login failed");
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('isLoggedIn');
+    const logout = async () => {
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+        setUser(null); // 💡 로그아웃 시 정보 날림
         setIsAuthenticated(false);
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
-            {children}
+        <AuthContext.Provider value={{ isAuthenticated, isLoading, user, login, logout }}>
+            {!isLoading && children}
         </AuthContext.Provider>
     );
 }
 
-// 3. 커스텀 훅 (camelCase로 export)
 export const useAuth = () => {
     const ctx = useContext(AuthContext);
     if (!ctx) throw new Error("AuthProvider가 필요합니다.");
