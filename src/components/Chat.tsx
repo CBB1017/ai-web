@@ -1,11 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChatMessages, type ChatMode } from '../hooks/useChatMessages';
 import MessageBubble from './MessageBubble';
+import Sidebar from './Sidebar';
+import ActionPanel from './ActionPanel';
 import {useAuth} from "../context/AuthContext.tsx";
 
 export default function Chat() {
     const { user, logout } = useAuth();
     const [mode, setMode] = useState<ChatMode>('GENERAL');
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+    const [actionPanelCollapsed, setActionPanelCollapsed] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // 💡 비즈니스 로직을 커스텀 훅에서 깔끔하게 가져옴
@@ -18,11 +22,53 @@ export default function Chat() {
         }
     }, [messages, isLoading]);
 
+    // 모바일에서 한쪽만 열리도록 처리
+    const handleSidebarToggle = () => {
+        if (!sidebarCollapsed) {
+            setSidebarCollapsed(true);
+        } else {
+            setSidebarCollapsed(false);
+            setActionPanelCollapsed(true);
+        }
+    };
+
+    const handleActionPanelToggle = () => {
+        if (!actionPanelCollapsed) {
+            setActionPanelCollapsed(true);
+        } else {
+            setActionPanelCollapsed(false);
+            setSidebarCollapsed(true);
+        }
+    };
+
     return (
-        <div className="container">
+        <div className="chat-layout">
+            {/* 모바일에서 백드롭 오버레이 */}
+            {(!sidebarCollapsed || !actionPanelCollapsed) && (
+                <div
+                    className="mobile-backdrop"
+                    onClick={() => {
+                        setSidebarCollapsed(true);
+                        setActionPanelCollapsed(true);
+                    }}
+                />
+            )}
+
+            <Sidebar isCollapsed={sidebarCollapsed} onToggle={handleSidebarToggle} />
+
+            <div className="container">
             <header>
+                {/* 모바일 토글 버튼들 */}
+                <button className="mobile-sidebar-toggle" onClick={handleSidebarToggle}>
+                    ☰
+                </button>
+
                 {/* 💡 헤더에 유저 이름 표시 */}
                 <span className="logo">🤖 {user?.username}님의 AI Assistant</span>
+
+                <button className="mobile-action-toggle" onClick={handleActionPanelToggle}>
+                    ⚡
+                </button>
 
                 <div className="mode-selector">
                     <select value={mode} onChange={(e) => setMode(e.target.value as ChatMode)} disabled={isLoading}>
@@ -77,6 +123,9 @@ export default function Chat() {
                     <button onClick={handleSubmit} disabled={!input.trim()}>전송</button>
                 )}
             </footer>
+        </div>
+
+            <ActionPanel isCollapsed={actionPanelCollapsed} onToggle={handleActionPanelToggle} />
         </div>
     );
 }
