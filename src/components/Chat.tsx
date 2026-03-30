@@ -8,12 +8,41 @@ import {useAuth} from "../context/AuthContext.tsx";
 export default function Chat() {
     const { user, logout } = useAuth();
     const [mode, setMode] = useState<ChatMode>('GENERAL');
+    const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
     const [actionPanelCollapsed, setActionPanelCollapsed] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // 💡 비즈니스 로직을 커스텀 훅에서 깔끔하게 가져옴
-    const { messages, input, setInput, isLoading, handleSubmit, handleStop } = useChatMessages(mode);
+    // 💡 커스텀 훅에 selectedRoomId를 전달하여 과거 메시지를 로드하게 함
+    const {
+        messages,
+        setMessages,
+        input,
+        setInput,
+        isLoading,
+        handleSubmit,
+        handleStop
+    } = useChatMessages({mode, onRoomCreated: (newId: string) => setSelectedRoomId(newId)});
+
+    // 💡 과거 메시지 불러오기 로직 (roomId 변경 시 실행)
+    useEffect(() => {
+        if (!selectedRoomId) {
+            setMessages([]); // 방 선택이 없으면 메시지 비움
+            return;
+        }
+
+        const loadHistory = async () => {
+            try {
+                const response = await fetch(`/api/chat/rooms/${selectedRoomId}/messages`);
+                const data = await response.json();
+                setMessages(data);
+            } catch (error) {
+                console.error("History 로드 실패:", error);
+            }
+        };
+
+        loadHistory();
+    }, [selectedRoomId, setMessages]);
 
     // 자동 스크롤 로직만 뷰 쪽에 남김
     useEffect(() => {
@@ -54,7 +83,12 @@ export default function Chat() {
                 />
             )}
 
-            <Sidebar isCollapsed={sidebarCollapsed} onToggle={handleSidebarToggle} />
+            <Sidebar
+                isCollapsed={sidebarCollapsed}
+                onToggle={handleSidebarToggle}
+                onSelectRoom={setSelectedRoomId}
+                activeRoomId={selectedRoomId}
+            />
 
             <div className="container">
             <header>
@@ -87,13 +121,13 @@ export default function Chat() {
             </header>
 
             <main className="chat-window" ref={scrollRef}>
-                {messages.length === 0 && (
-                    <div style={{ margin: 'auto', color: 'var(--text-muted)' }}>
-                        대화를 시작해보세요!
+                {messages.length === 0 && !isLoading && (
+                    <div style={{ margin: 'auto', color: 'var(--text-muted)', textAlign: 'center' }}>
+                        <p>🤖 안녕하세요, {user?.username}님!</p>
+                        <p>왼쪽 대화 기록을 선택하거나 새 대화를 시작해보세요.</p>
                     </div>
                 )}
 
-                {/* 💡 분리한 컴포넌트 렌더링 */}
                 {messages.map((msg, idx) => (
                     <MessageBubble key={idx} msg={msg} mode={mode} />
                 ))}
@@ -112,15 +146,23 @@ export default function Chat() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSubmit();
+                        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                            handleSubmit(selectedRoomId);
+                        }
                     }}
-                    placeholder={mode === 'KNOWLEDGE' ? "사내 규정에 대해 물어보세요..." : "무엇이든 물어보세요..."}
+                    placeholder={selectedRoomId ? "메시지를 입력하세요..." : "새 대화를 시작하려면 메시지를 입력하세요"}
                     disabled={isLoading}
                 />
                 {isLoading ? (
                     <button onClick={handleStop} className="stop-btn">중단</button>
                 ) : (
-                    <button onClick={handleSubmit} disabled={!input.trim()}>전송</button>
+                    <button
+                        // 💡 인자 없는 익명 함수 () => ... 를 만들고, 그 안에서 값을 명시적으로 전달
+                        onClick={() => handleSubmit(selectedRoomId)}
+                        disabled={!input.trim()}
+                    >
+                        전송
+                    </button>
                 )}
             </footer>
         </div>
