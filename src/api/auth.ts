@@ -9,3 +9,4 @@ export const fetchWithAuth = (url: string, options: any = {}) => {
         }
     });
 };
+

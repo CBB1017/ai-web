@@ -8,6 +8,7 @@ export const useAiStream = () => {
     const stream = async (
         url: string,
         prompt: string,
+        roomId: string,
         onMessage: (msg: string) => void,
         signal?: AbortSignal
     ) => {
@@ -18,7 +19,7 @@ export const useAiStream = () => {
                     'Content-Type': 'application/json',
                     'Accept': 'text/event-stream',
                 },
-                body: JSON.stringify({ prompt }),
+                body: JSON.stringify({ prompt, roomId }),
                 credentials: 'include',
                 signal: signal,
 

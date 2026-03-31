@@ -1,12 +1,8 @@
-import type { ChatMode, Message } from '../hooks/useChatMessages';
+import type {Props} from "../constants/constant.ts";
 
-interface Props {
-    msg: Message;
-    mode: ChatMode;
-}
 
 export default function MessageBubble({ msg, mode }: Props) {
-    const isUser = msg.role === 'user';
+    const isUser = msg.role === 'USER';
 
     return (
         <div

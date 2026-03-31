@@ -1,51 +1,36 @@
-import {type Dispatch, type SetStateAction, useEffect, useState} from 'react';
-
-interface SidebarProps {
-    isCollapsed: boolean;
-    onToggle: () => void;
-    onSelectRoom: Dispatch<SetStateAction<string | null>>;
-    activeRoomId: string | null;
-}
-
-interface ChatRoom {
-    roomId: string;
-    title: string;
-    updatedAt: string;
-}
+import { useState } from 'react';
+import type {ChatRoom, SidebarProps} from "../constants/constant.ts";
+import { useAtom } from "jotai";
+import { selectedRoomAtom } from "../store/store.ts";
+import {useChatRooms} from "../hooks/useChatRooms.ts";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {fetchSaveChatRoom} from "../api/chat.ts";
 
 export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     const [isHovered, setIsHovered] = useState(false);
-    const [chatHistory, setChatHistory] = useState<ChatRoom[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomAtom);
+    const queryClient = useQueryClient();
 
-    // 1. 서버에서 채팅방 목록 가져오기
-    useEffect(() => {
-        const fetchChatRooms = async () => {
-            try {
-                const response = await fetch('/api/chat/rooms', {
-                    headers: { 'x-user-id': 'bc.mun' } // 실제로는 세션/컨텍스트에서 가져옴
-                });
-                const data = await response.json();
-                setChatHistory(data);
-            } catch (error) {
-                console.error("채팅 목록 로딩 실패:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    // 1. useChatRooms에서 반환된 값을 바로 변수로 매핑
+    // data가 없을 경우를 대비해 기본값으로 빈 배열([]) 할당
+    const { data: chatHistory = [], isLoading: loading } = useChatRooms(isCollapsed);
 
-        if (!isCollapsed) fetchChatRooms();
-    }, [isCollapsed]);
+    const { mutate: createChat, isPending } = useMutation({
+        mutationFn: () => fetchSaveChatRoom(),
+        onSuccess: (newRoom: ChatRoom) => {
+            setSelectedRoom(newRoom);
+            // 생성 성공 시 자동으로 목록 동기화
+            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+        },
+        onError: (error) => {
+            console.error("새 대화 생성 실패:", error);
+            // TODO: 사용자에게 에러 Toast 알림 띄우기
+        }
+    });
 
-    // 2. 새 대화 생성 핸들러
-    const handleNewChat = async () => {
-        const response = await fetch('/api/chat/rooms', {
-            method: 'POST',
-            headers: { 'x-user-id': 'bc.mun' }
-        });
-        const newRoom = await response.json();
-        setChatHistory([newRoom, ...chatHistory]); // 목록 맨 앞에 추가
-        // TODO: 신규 생성된 roomId로 페이지 이동(Navigate) 로직 추가
+    const handleNewChat = () => {
+        if (isPending) return; // 로딩 중 중복 클릭 방지
+        createChat();
     };
 
     const formatTime = (dateStr: string) => {
@@ -53,26 +38,16 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const hours = Math.floor(diff / 3600000);
-        const days = Math.floor(diff / 86400000);
-
         if (hours < 1) return '방금 전';
         if (hours < 24) return `${hours}시간 전`;
-        return `${days}일 전`;
+        return `${Math.floor(diff / 86400000)}일 전`;
     };
 
     return (
         <>
             {isCollapsed && (
-                <div
-                    className="sidebar-hover-trigger"
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                >
-                    {isHovered && (
-                        <button onClick={onToggle} className="sidebar-toggle-hover">
-                            →
-                        </button>
-                    )}
+                <div className="sidebar-hover-trigger" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+                    {isHovered && <button onClick={onToggle} className="sidebar-toggle-hover">→</button>}
                 </div>
             )}
 
@@ -91,7 +66,13 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                                     <div className="loading-spinner">로딩 중...</div>
                                 ) : (
                                     chatHistory.map((chat) => (
-                                        <div key={chat.roomId} className="chat-item" onClick={() => {/* 해당 방으로 이동 */}}>
+                                        <div
+                                            key={chat.roomId}
+                                            // 선택된 방 강조 스타일 추가
+                                            className={`chat-item ${selectedRoom?.roomId === chat.roomId ? 'active' : ''}`}
+                                            // 클릭 시 전역 상태 업데이트
+                                            onClick={() => setSelectedRoom(chat)}
+                                        >
                                             <div className="chat-item-title">{chat.title}</div>
                                             <div className="chat-item-time">{formatTime(chat.updatedAt)}</div>
                                         </div>

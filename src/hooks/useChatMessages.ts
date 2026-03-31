@@ -1,103 +1,122 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect} from 'react';
+import { useAtom } from 'jotai';
 import { useAiStream } from './useAiStream';
+import { useChatHistory } from './useChatHistory';
+import type { Message } from "../constants/constant.ts";
+import {selectedRoomAtom} from "../store/store.ts";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {fetchSaveChatRoom} from "../api/chat.ts";
 
-export type ChatMode = 'GENERAL' | 'KNOWLEDGE';
-export type Message = { role: 'USER' | 'ASSISTANT'; content: string; createdAt?: string };
+export function useChatMessages() {
+    // 1. Jotai Store 연동 (현재 선택된 방 정보)
+    const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomAtom);
 
-interface UseChatMessagesProps {
-    mode: ChatMode;
-    onRoomCreated?: (roomId: string) => void;
-}
-
-export function useChatMessages({ mode, onRoomCreated }: UseChatMessagesProps) {
+    // 2. Local State
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isStreaming, setIsStreaming] = useState(false);
 
     const abortControllerRef = useRef<AbortController | null>(null);
     const { stream } = useAiStream();
+    const queryClient = useQueryClient();
 
-    const createNewRoom = async () => {
-        const response = await fetch('/api/chat/rooms', {
-            method: 'POST',
-            headers: { 'x-user-id': 'bc.mun' } // 실제 환경에선 인증 정보 사용
-        });
-        if (!response.ok) throw new Error('채팅방 생성 실패');
-        return await response.json(); // { roomId: "...", title: "..." }
-    };
+    // React Query: 과거 내역 가져오기
+    const { data: historyData, isLoading: isHistoryLoading } = useChatHistory(selectedRoom);
+
+    // 방 생성 Mutation 정의
+    const { mutateAsync: createChatRoom } = useMutation({
+        mutationFn: (title: string) => fetchSaveChatRoom(title),
+        onSuccess: () => {
+            // 사이드바 즉시 갱신
+            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+        }
+    });
+
+    // 통합 로딩 상태 (과거 내역 로딩 중이거나, AI 답변 중일 때)
+    const isLoading = isHistoryLoading || isStreaming;
+
+    // 방이 바뀌면(historyData 변경 시) 로컬 메시지 동기화
+    useEffect(() => {
+        if (historyData) {
+            setMessages(historyData);
+        } else {
+            setMessages([]);
+        }
+    }, [historyData]);
 
     const handleStop = () => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
             abortControllerRef.current = null;
-            setIsLoading(false);
+            setIsStreaming(false);
         }
     };
 
-    const handleSubmit = async (currentRoomId: string | null) => {
+    const handleSubmit = async () => {
         if (!input.trim() || isLoading) return;
 
         const userText = input.trim();
         setInput('');
-        setIsLoading(true);
+        setIsStreaming(true);
 
-        let targetRoomId = currentRoomId;
+        let currentRoomId = selectedRoom?.roomId;
 
         try {
-            // 1. 방이 없는 상태에서 첫 질문이라면 방부터 생성
-            if (!targetRoomId) {
-                const newRoom = await createNewRoom();
-                targetRoomId = newRoom.roomId;
+            // 💡 1. 고스트 룸 처리: 방 ID가 없으면 먼저 생성 API 호출
+            if (!currentRoomId) {
+                const newRoom = await createChatRoom('새로운 대화'); // 기본값 전달
+                currentRoomId = newRoom.roomId;
 
-                // targetRoomId가 확실히 존재할 때만 콜백 실행
-                if (onRoomCreated && targetRoomId) {
-                    onRoomCreated(targetRoomId);
-                }
+                // 전역 상태 업데이트 (UI 즉시 반영)
+                setSelectedRoom(newRoom);
             }
 
-            // 2. UI에 사용자 메시지 추가
-            setMessages(prev => [
-                ...prev,
-                {role: 'USER', content: userText},
-                {role: 'ASSISTANT', content: ''}
+            // 2. 로컬 메시지 즉시 업데이트 (Optimistic UI)
+            setMessages(prev => [...prev,
+                { role: 'USER', content: userText },
+                { role: 'ASSISTANT', content: '' }
             ]);
 
             const controller = new AbortController();
             abortControllerRef.current = controller;
 
-            // 3. 스트림 호출 (URL에 roomId 포함)
+            // 3. 스트리밍 시작
             await stream(
-                `/api/ai/ask?mode=${mode}&roomId=${targetRoomId}`,
+                `/api/ai/ask`,
                 userText,
+                currentRoomId,
                 (chunk) => {
                     setMessages(prev => {
-                        const newMsgs = [...prev];
-                        if (newMsgs.length === 0) return prev;
-                        const lastIdx = newMsgs.length - 1;
-                        newMsgs[lastIdx] = {
-                            ...newMsgs[lastIdx],
-                            content: newMsgs[lastIdx].content + chunk
-                        };
-                        return newMsgs;
+                        const lastMsg = prev[prev.length - 1];
+                        if (lastMsg?.role === 'ASSISTANT') {
+                            return [
+                                ...prev.slice(0, -1),
+                                { ...lastMsg, content: lastMsg.content + chunk }
+                            ];
+                        }
+                        return prev;
                     });
                 },
                 controller.signal
             );
         } catch (error: any) {
-            if (error.name === 'AbortError') {
-                console.log('Stream aborted');
-            } else {
-                console.error('Submit Error:', error);
-                setMessages(prev => [...prev, {role: 'ASSISTANT', content: '⚠️ 오류가 발생했습니다. 다시 시도해주세요.'}]);
+            if (error.name !== 'AbortError') {
+                setMessages(prev => [...prev, { role: 'ASSISTANT', content: '⚠️ 오류가 발생했습니다.' }]);
             }
         } finally {
-            setIsLoading(false);
+            setIsStreaming(false);
             abortControllerRef.current = null;
+            await queryClient.invalidateQueries({queryKey: ['chatRooms']});
         }
     };
-    useEffect(() => {
-        return () => handleStop();
-    }, [handleStop]);
 
-    return { messages, setMessages, input, setInput, isLoading, handleSubmit, handleStop };
+    return {
+        messages,
+        setMessages,
+        input,
+        setInput,
+        isLoading,
+        handleSubmit,
+        handleStop
+    };
 }

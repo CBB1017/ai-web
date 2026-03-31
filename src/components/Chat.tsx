@@ -1,48 +1,30 @@
 import { useState, useRef, useEffect } from 'react';
-import { useChatMessages, type ChatMode } from '../hooks/useChatMessages';
+import { useChatMessages } from '../hooks/useChatMessages';
 import MessageBubble from './MessageBubble';
 import Sidebar from './Sidebar';
 import ActionPanel from './ActionPanel';
 import {useAuth} from "../context/AuthContext.tsx";
+import type {ChatMode, ChatRoom} from "../constants/constant.ts";
+import {useAtom} from "jotai";
+import {selectedRoomAtom} from "../store/store.ts";
 
 export default function Chat() {
     const { user, logout } = useAuth();
     const [mode, setMode] = useState<ChatMode>('GENERAL');
-    const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+    const [selectedRoom,] = useAtom<ChatRoom>(selectedRoomAtom);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
     const [actionPanelCollapsed, setActionPanelCollapsed] = useState(true);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // 💡 커스텀 훅에 selectedRoomId를 전달하여 과거 메시지를 로드하게 함
+    // 커스텀 훅에 selectedRoomId를 전달하여 과거 메시지를 로드하게 함
     const {
         messages,
-        setMessages,
         input,
         setInput,
         isLoading,
         handleSubmit,
         handleStop
-    } = useChatMessages({mode, onRoomCreated: (newId: string) => setSelectedRoomId(newId)});
-
-    // 💡 과거 메시지 불러오기 로직 (roomId 변경 시 실행)
-    useEffect(() => {
-        if (!selectedRoomId) {
-            setMessages([]); // 방 선택이 없으면 메시지 비움
-            return;
-        }
-
-        const loadHistory = async () => {
-            try {
-                const response = await fetch(`/api/chat/rooms/${selectedRoomId}/messages`);
-                const data = await response.json();
-                setMessages(data);
-            } catch (error) {
-                console.error("History 로드 실패:", error);
-            }
-        };
-
-        loadHistory();
-    }, [selectedRoomId, setMessages]);
+    } = useChatMessages();
 
     // 자동 스크롤 로직만 뷰 쪽에 남김
     useEffect(() => {
@@ -86,8 +68,6 @@ export default function Chat() {
             <Sidebar
                 isCollapsed={sidebarCollapsed}
                 onToggle={handleSidebarToggle}
-                onSelectRoom={setSelectedRoomId}
-                activeRoomId={selectedRoomId}
             />
 
             <div className="container">
@@ -147,10 +127,10 @@ export default function Chat() {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                            handleSubmit(selectedRoomId);
+                            handleSubmit();
                         }
                     }}
-                    placeholder={selectedRoomId ? "메시지를 입력하세요..." : "새 대화를 시작하려면 메시지를 입력하세요"}
+                    placeholder={selectedRoom ? "메시지를 입력하세요..." : "새 대화를 시작하려면 메시지를 입력하세요"}
                     disabled={isLoading}
                 />
                 {isLoading ? (
@@ -158,7 +138,7 @@ export default function Chat() {
                 ) : (
                     <button
                         // 💡 인자 없는 익명 함수 () => ... 를 만들고, 그 안에서 값을 명시적으로 전달
-                        onClick={() => handleSubmit(selectedRoomId)}
+                        onClick={() => handleSubmit()}
                         disabled={!input.trim()}
                     >
                         전송
