@@ -33,6 +33,12 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         createChat();
     };
 
+    const handleRoomClick = (chat: ChatRoom) => {
+        setSelectedRoom(chat);
+        // 클릭 시 해당 방의 메시지 쿼리를 무효화하여 useChatMessages가 즉시 반응하게 함
+        queryClient.invalidateQueries({ queryKey: ['chatMessages', chat.roomId] });
+    };
+
     const formatTime = (dateStr: string) => {
         const date = new Date(dateStr);
         const now = new Date();
@@ -71,7 +77,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                                             // 선택된 방 강조 스타일 추가
                                             className={`chat-item ${selectedRoom?.roomId === chat.roomId ? 'active' : ''}`}
                                             // 클릭 시 전역 상태 업데이트
-                                            onClick={() => setSelectedRoom(chat)}
+                                            onClick={() => handleRoomClick(chat)}
                                         >
                                             <div className="chat-item-title">{chat.title}</div>
                                             <div className="chat-item-time">{formatTime(chat.updatedAt)}</div>

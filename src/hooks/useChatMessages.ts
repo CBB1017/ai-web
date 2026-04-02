@@ -35,14 +35,15 @@ export function useChatMessages() {
     // 통합 로딩 상태 (과거 내역 로딩 중이거나, AI 답변 중일 때)
     const isLoading = isHistoryLoading || isStreaming;
 
-    // 방이 바뀌면(historyData 변경 시) 로컬 메시지 동기화
     useEffect(() => {
+        // 1. 방이 바뀌면 일단 로컬 메시지 초기화 (이전 방 메시지 잔상 제거)
+        setMessages([]);
+
+        // 2. 새로운 데이터가 들어오면 업데이트
         if (historyData) {
             setMessages(historyData);
-        } else {
-            setMessages([]);
         }
-    }, [historyData]);
+    }, [selectedRoom?.roomId, historyData]); // roomId를 의존성에 추가하여 확실히 트리거
 
     const handleStop = () => {
         if (abortControllerRef.current) {
