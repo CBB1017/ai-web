@@ -4,8 +4,7 @@ import { useAiStream } from './useAiStream';
 import { useChatHistory } from './useChatHistory';
 import type { Message } from "../constants/constant.ts";
 import {selectedRoomAtom} from "../store/store.ts";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {fetchSaveChatRoom} from "../api/chat.ts";
+import {useQueryClient} from "@tanstack/react-query";
 
 export function useChatMessages() {
     // 1. Jotai Store 연동 (현재 선택된 방 정보)
@@ -23,27 +22,22 @@ export function useChatMessages() {
     // React Query: 과거 내역 가져오기
     const { data: historyData, isLoading: isHistoryLoading } = useChatHistory(selectedRoom);
 
-    // 방 생성 Mutation 정의
-    const { mutateAsync: createChatRoom } = useMutation({
-        mutationFn: (title: string) => fetchSaveChatRoom(title),
-        onSuccess: () => {
-            // 사이드바 즉시 갱신
-            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-        }
-    });
-
     // 통합 로딩 상태 (과거 내역 로딩 중이거나, AI 답변 중일 때)
     const isLoading = isHistoryLoading || isStreaming;
 
     useEffect(() => {
-        // 1. 방이 바뀌면 일단 로컬 메시지 초기화 (이전 방 메시지 잔상 제거)
-        setMessages([]);
+        // 스트리밍이 진행 중일 때는 방 ID가 부여되더라도 로컬 메시지를 엎어치지 않음
+        if (isStreaming) {
+            return;
+        }
 
-        // 2. 새로운 데이터가 들어오면 업데이트
+        // 스트리밍 중이 아닐 때만 초기화 및 과거 내역 세팅
         if (historyData) {
             setMessages(historyData);
+        } else {
+            setMessages([]);
         }
-    }, [selectedRoom?.roomId, historyData]); // roomId를 의존성에 추가하여 확실히 트리거
+    }, [selectedRoom?.roomId, historyData, isStreaming]);
 
     const handleStop = () => {
         if (abortControllerRef.current) {
@@ -59,25 +53,17 @@ export function useChatMessages() {
         const userText = input.trim();
         setInput('');
         setIsStreaming(true);
+        let finalRoomId = selectedRoom?.roomId || '';
+        const isNewChat = !finalRoomId;
 
-        let currentRoomId = selectedRoom?.roomId;
+        // 1. Optimistic UI: 메시지 즉시 표시
+        setMessages(prev => [
+            ...prev,
+            { role: 'USER', content: userText },
+            { role: 'ASSISTANT', content: '' }
+        ]);
 
         try {
-            // 1. 고스트 룸 처리: 방 ID가 없으면 먼저 생성 API 호출
-            if (!currentRoomId) {
-                const newRoom = await createChatRoom('새로운 대화'); // 기본값 전달
-                currentRoomId = newRoom.roomId;
-
-                // 전역 상태 업데이트 (UI 즉시 반영)
-                setSelectedRoom(newRoom);
-            }
-
-            // 2. 로컬 메시지 즉시 업데이트 (Optimistic UI)
-            setMessages(prev => [...prev,
-                { role: 'USER', content: userText },
-                { role: 'ASSISTANT', content: '' }
-            ]);
-
             const controller = new AbortController();
             abortControllerRef.current = controller;
 
@@ -85,7 +71,7 @@ export function useChatMessages() {
             await stream(
                 `/api/ai/ask`,
                 userText,
-                currentRoomId,
+                finalRoomId,
                 (chunk) => {
                     setMessages(prev => {
                         const lastMsg = prev[prev.length - 1];
@@ -98,12 +84,22 @@ export function useChatMessages() {
                         return prev;
                     });
                 },
-                controller.signal
+                controller.signal,
+                (newRoomId) => {
+                    if (isNewChat) {
+                        finalRoomId = newRoomId;
+                        setSelectedRoom({
+                            roomId: newRoomId,
+                            title: '요약 중...',
+                            updatedAt: new Date().toISOString()
+                        });
+                    }
+                }
             );
 
             // 스트리밍이 성공적으로 끝나면 해당 방의 메시지 내역만 새로고침
             await queryClient.invalidateQueries({
-                queryKey: ['chatMessages', currentRoomId]
+                queryKey: ['chatMessages', finalRoomId]
             });
         } catch (error: any) {
             if (error.name !== 'AbortError') {
@@ -112,6 +108,7 @@ export function useChatMessages() {
         } finally {
             setIsStreaming(false);
             abortControllerRef.current = null;
+            //채팅 목록에 새 대화가 쌓임
             await queryClient.invalidateQueries({queryKey: ['chatRooms']});
         }
     };

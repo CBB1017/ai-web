@@ -9,8 +9,9 @@ export const useAiStream = () => {
         url: string,
         prompt: string,
         roomId: string,
-        onMessage: (msg: string) => void,
-        signal?: AbortSignal
+        onMessage: (chunk: string) => void,
+        signal?: AbortSignal,
+        onRoomIdReceived?: (roomId: string) => void
     ) => {
         try {
             await fetchEventSource(url, {
@@ -29,6 +30,11 @@ export const useAiStream = () => {
                         throw new Error("Unauthorized");
                     }
                     if (!res.ok) throw new Error("Server Error");
+
+                    const newRoomId = res.headers.get('X-Room-Id');
+                    if (newRoomId && onRoomIdReceived) {
+                        onRoomIdReceived(newRoomId);
+                    }
                 },
 
                 onmessage(ev) {

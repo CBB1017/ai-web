@@ -3,8 +3,7 @@ import type {ChatRoom, SidebarProps} from "../constants/constant.ts";
 import { useAtom } from "jotai";
 import { selectedRoomAtom } from "../store/store.ts";
 import {useChatRooms} from "../hooks/useChatRooms.ts";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {fetchSaveChatRoom} from "../api/chat.ts";
+import {useQueryClient} from "@tanstack/react-query";
 import {useTimeRefresh} from "../hooks/useTimeRefresh.ts";
 
 export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
@@ -18,22 +17,8 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     // data가 없을 경우를 대비해 기본값으로 빈 배열([]) 할당
     const { data: chatHistory = [], isLoading: loading } = useChatRooms(isCollapsed);
 
-    const { mutate: createChat, isPending } = useMutation({
-        mutationFn: () => fetchSaveChatRoom(),
-        onSuccess: (newRoom: ChatRoom) => {
-            setSelectedRoom(newRoom);
-            // 생성 성공 시 자동으로 목록 동기화
-            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-        },
-        onError: (error) => {
-            console.error("새 대화 생성 실패:", error);
-            // TODO: 사용자에게 에러 Toast 알림 띄우기
-        }
-    });
-
     const handleNewChat = () => {
-        if (isPending) return; // 로딩 중 중복 클릭 방지
-        createChat();
+        setSelectedRoom({ roomId: '', title: '새 대화', updatedAt: '' });
     };
 
     const handleRoomClick = (chat: ChatRoom) => {
