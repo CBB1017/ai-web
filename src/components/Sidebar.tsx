@@ -5,11 +5,14 @@ import { selectedRoomAtom } from "../store/store.ts";
 import {useChatRooms} from "../hooks/useChatRooms.ts";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {fetchSaveChatRoom} from "../api/chat.ts";
+import {useTimeRefresh} from "../hooks/useTimeRefresh.ts";
 
 export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomAtom);
     const queryClient = useQueryClient();
+
+    const now = useTimeRefresh(); // 1분마다 이 컴포넌트가 리렌더링됨
 
     // 1. useChatRooms에서 반환된 값을 바로 변수로 매핑
     // data가 없을 경우를 대비해 기본값으로 빈 배열([]) 할당
@@ -34,19 +37,33 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     };
 
     const handleRoomClick = (chat: ChatRoom) => {
-        setSelectedRoom(chat);
-        // 클릭 시 해당 방의 메시지 쿼리를 무효화하여 useChatMessages가 즉시 반응하게 함
-        queryClient.invalidateQueries({ queryKey: ['chatMessages', chat.roomId] });
+        if(!selectedRoom.roomId || (chat.roomId !== selectedRoom?.roomId)){
+            setSelectedRoom(chat);
+            // 클릭 시 해당 방의 메시지 쿼리를 무효화하여 useChatMessages가 즉시 반응하게 함
+            queryClient.invalidateQueries({ queryKey: ['chatMessages', chat.roomId] });
+        }
     };
 
     const formatTime = (dateStr: string) => {
+        if (!dateStr) return '새 대화';
+
         const date = new Date(dateStr);
-        const now = new Date();
-        const diff = now.getTime() - date.getTime();
-        const hours = Math.floor(diff / 3600000);
-        if (hours < 1) return '방금 전';
-        if (hours < 24) return `${hours}시간 전`;
-        return `${Math.floor(diff / 86400000)}일 전`;
+        const diffMs = now.getTime() - date.getTime();
+        const diffMinutes = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        // 1. 5분 미만
+        if (diffMinutes < 5) return '방금 전';
+
+        // 2. 1시간 미만 (분 단위 표시 추가)
+        if (diffMinutes < 60) return `${diffMinutes}분 전`;
+
+        // 3. 24시간 미만 (시간 단위)
+        if (diffHours < 24) return `${diffHours}시간 전`;
+
+        // 4. 그 외 (일 단위)
+        return `${diffDays}일 전`;
     };
 
     return (

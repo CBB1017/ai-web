@@ -63,7 +63,7 @@ export function useChatMessages() {
         let currentRoomId = selectedRoom?.roomId;
 
         try {
-            // 💡 1. 고스트 룸 처리: 방 ID가 없으면 먼저 생성 API 호출
+            // 1. 고스트 룸 처리: 방 ID가 없으면 먼저 생성 API 호출
             if (!currentRoomId) {
                 const newRoom = await createChatRoom('새로운 대화'); // 기본값 전달
                 currentRoomId = newRoom.roomId;
@@ -100,6 +100,11 @@ export function useChatMessages() {
                 },
                 controller.signal
             );
+
+            // 스트리밍이 성공적으로 끝나면 해당 방의 메시지 내역만 새로고침
+            await queryClient.invalidateQueries({
+                queryKey: ['chatMessages', currentRoomId]
+            });
         } catch (error: any) {
             if (error.name !== 'AbortError') {
                 setMessages(prev => [...prev, { role: 'ASSISTANT', content: '⚠️ 오류가 발생했습니다.' }]);
