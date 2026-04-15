@@ -4,6 +4,8 @@ export type Message = { role: 'USER' | 'ASSISTANT'; content: string; createdAt?:
 export interface SidebarProps {
     isCollapsed: boolean;
     onToggle: () => void;
+    isPinned: boolean;
+    onPinToggle?: () => void;
 }
 
 export interface ChatRoom {

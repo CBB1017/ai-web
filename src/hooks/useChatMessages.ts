@@ -25,6 +25,15 @@ export function useChatMessages() {
     // 통합 로딩 상태 (과거 내역 로딩 중이거나, AI 답변 중일 때)
     const isLoading = isHistoryLoading || isStreaming;
 
+    // 언마운트 시 스트리밍 중단 처리
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
+
     useEffect(() => {
         // 스트리밍이 진행 중일 때는 방 ID가 부여되더라도 로컬 메시지를 엎어치지 않음
         if (isStreaming) {
@@ -47,19 +56,19 @@ export function useChatMessages() {
         }
     };
 
-    const handleSubmit = async () => {
-        if (!input.trim() || isLoading) return;
+    const handleSubmit = async (overrideInput?: string) => {
+        const textToSubmit = (overrideInput || input).trim();
+        if (!textToSubmit || isLoading) return;
 
-        const userText = input.trim();
         setInput('');
         setIsStreaming(true);
-        let finalRoomId = selectedRoom?.roomId || '';
-        const isNewChat = !finalRoomId;
+        let currentRoomId = selectedRoom?.roomId || '';
+        const isNewChat = !currentRoomId;
 
         // 1. Optimistic UI: 메시지 즉시 표시
         setMessages(prev => [
             ...prev,
-            { role: 'USER', content: userText },
+            { role: 'USER', content: textToSubmit },
             { role: 'ASSISTANT', content: '' }
         ]);
 
@@ -70,8 +79,8 @@ export function useChatMessages() {
             // 3. 스트리밍 시작
             await stream(
                 `/api/ai/ask`,
-                userText,
-                finalRoomId,
+                textToSubmit,
+                currentRoomId,
                 (chunk) => {
                     setMessages(prev => {
                         const lastMsg = prev[prev.length - 1];
@@ -86,29 +95,45 @@ export function useChatMessages() {
                 },
                 controller.signal,
                 (newRoomId) => {
+                    // 💡 새 대화라면 백엔드에서 생성된 RoomId를 받아 세션 업데이트
                     if (isNewChat) {
-                        finalRoomId = newRoomId;
+                        currentRoomId = newRoomId;
                         setSelectedRoom({
                             roomId: newRoomId,
-                            title: '요약 중...',
+                            title: textToSubmit.slice(0, 20) + '...', // 백엔드 요약 전 임시 제목
                             updatedAt: new Date().toISOString()
                         });
+                        // 방 목록 갱신 예약
+                        queryClient.invalidateQueries({queryKey: ['chatRooms']});
                     }
                 }
             );
 
             // 스트리밍이 성공적으로 끝나면 해당 방의 메시지 내역만 새로고침
             await queryClient.invalidateQueries({
-                queryKey: ['chatMessages', finalRoomId]
+                queryKey: ['chatMessages', currentRoomId]
             });
         } catch (error: any) {
             if (error.name !== 'AbortError') {
-                setMessages(prev => [...prev, { role: 'ASSISTANT', content: '⚠️ 오류가 발생했습니다.' }]);
+                const errorMessage = `⚠️ 오류가 발생했습니다.\n\n[상세 내용]\n${error.message || '알 수 없는 서버 오류'}`;
+                setMessages(prev => {
+                    const lastMsg = prev[prev.length - 1];
+                    if (lastMsg?.role === 'ASSISTANT') {
+                        const newContent = lastMsg.content 
+                            ? `${lastMsg.content}\n\n${errorMessage}`
+                            : errorMessage;
+                        return [
+                            ...prev.slice(0, -1),
+                            { ...lastMsg, content: newContent }
+                        ];
+                    }
+                    return [...prev, { role: 'ASSISTANT', content: errorMessage }];
+                });
             }
         } finally {
             setIsStreaming(false);
             abortControllerRef.current = null;
-            //채팅 목록에 새 대화가 쌓임
+            // 최종적으로 방 목록(백엔드에서 생성된 제목 포함) 갱신
             await queryClient.invalidateQueries({queryKey: ['chatRooms']});
         }
     };

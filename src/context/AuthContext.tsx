@@ -23,7 +23,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
                 if (res.ok) {
                     const data = await res.json();
                     setUser({
-                        username: data.username,
+                        username: data.username || data.name || 'User',
                         email: data.email,
                         dept: data.dept,
                         position: data.position
@@ -55,9 +55,15 @@ export function AuthProvider({children}: { children: ReactNode }) {
         if (response.ok) {
             const data = await response.json();
             localStorage.setItem('accessToken', data.token); // 우리 JWT 저장
-            setUser({username: data.name, email: data.email, dept: data.dept, position: data.position});
+            setUser({
+                username: data.username || data.name || 'User',
+                email: data.email,
+                dept: data.dept,
+                position: data.position
+            });
             setIsAuthenticated(true);
-        } else {
+        }
+ else {
             const errorData = await response.json();
             // 백엔드에서 보낸 에러 구조에 따라 errorData.message 또는 errorData.error 등을 사용
             throw new Error(errorData.error.detail || errorData.message  || '로그인에 실패했습니다.');

@@ -23,13 +23,17 @@ export const useAiStream = () => {
                 body: JSON.stringify({ prompt, roomId }),
                 credentials: 'include',
                 signal: signal,
+                openWhenHidden: true,
 
                 async onopen(res) {
                     if (res.status === 401) {
                         logout();
-                        throw new Error("Unauthorized");
+                        throw new Error("인증이 만료되었습니다. 다시 로그인해주세요.");
                     }
-                    if (!res.ok) throw new Error("Server Error");
+                    if (!res.ok) {
+                        const errorBody = await res.json().catch(() => ({}));
+                        throw new Error(errorBody.message || `서버 오류 (${res.status})`);
+                    }
 
                     const newRoomId = res.headers.get('X-Room-Id');
                     if (newRoomId && onRoomIdReceived) {
@@ -47,14 +51,13 @@ export const useAiStream = () => {
                 },
 
                 onerror(err) {
-                    // 사용자가 의도적으로 중단한 경우(AbortError)는 에러로 던지지 않음
                     if (err.name === 'AbortError') return;
-                    throw err;
+                    throw err; // Rethrow to stop retry and catch in useChatMessages
                 }
             });
         } catch (err: any) {
             if (err.name !== 'AbortError') {
-                console.error("Stream Error:", err);
+                throw err;
             }
         }
     };

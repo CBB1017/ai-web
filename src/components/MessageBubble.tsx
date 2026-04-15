@@ -1,34 +1,26 @@
 import type {Props} from "../constants/constant.ts";
 
-
 export default function MessageBubble({ msg, mode }: Props) {
     const isUser = msg.role === 'USER';
 
     return (
-        <div
-            className={`message ${msg.role}`}
-            style={{
-                alignSelf: isUser ? 'flex-end' : 'flex-start',
-                flexDirection: isUser ? 'row-reverse' : 'row'
-            }}
-        >
-            <div
-                className="avatar"
-                style={{
-                    background: isUser ? '#e5e7eb' : 'var(--primary-gradient)',
-                    color: isUser ? '#374151' : 'white'
-                }}
-            >
-                {isUser ? '나' : (mode === 'KNOWLEDGE' ? '🎓' : 'AI')}
+        <div className={`message-wrapper ${isUser ? 'user' : 'ai'}`}>
+            {!isUser && (
+                <div className="avatar ai">
+                    {mode === 'KNOWLEDGE' ? '🎓' : '🤖'}
+                </div>
+            )}
+            <div className="message-content">
+                <div className={`bubble ${isUser ? 'user' : 'ai'}`}>
+                    {msg.content}
+                </div>
+                {/* 추후 타임스탬프 추가 가능 공간 */}
             </div>
-            <div
-                className="bubble"
-                style={{
-                    background: isUser ? 'var(--user-bubble)' : 'var(--ai-bubble)'
-                }}
-            >
-                {msg.content}
-            </div>
+            {isUser && (
+                <div className="avatar user">
+                    나
+                </div>
+            )}
         </div>
     );
 }

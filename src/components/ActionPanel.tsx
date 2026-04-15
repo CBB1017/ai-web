@@ -16,7 +16,6 @@ interface ActionPanelProps {
 }
 
 export default function ActionPanel({ isCollapsed, onToggle }: ActionPanelProps) {
-    const [isHovered, setIsHovered] = useState(false);
     const [actions, setActions] = useState<MCPAction[]>([
         {
             id: '1',
@@ -92,70 +91,64 @@ export default function ActionPanel({ isCollapsed, onToggle }: ActionPanelProps)
     };
 
     return (
-        <>
-            {isCollapsed && (
-                <div
-                    className="action-hover-trigger"
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                >
-                    {isHovered && (
-                        <button onClick={onToggle} className="panel-toggle-hover">
-                            ←
-                        </button>
-                    )}
-                </div>
-            )}
-
-            <aside className={`action-panel ${isCollapsed ? 'collapsed' : ''}`}>
-                {!isCollapsed && (
+        <aside 
+            className={`action-panel ${isCollapsed ? 'collapsed' : ''}`}
+            // PC에서 마우스가 들어오면 자동으로 열림
+            onMouseEnter={() => isCollapsed && window.innerWidth > 768 && onToggle()}
+            // PC에서 마우스가 나가면 자동으로 닫힘
+            onMouseLeave={() => !isCollapsed && window.innerWidth > 768 && onToggle()}
+        >
+            <div className="action-panel-header">
+                {isCollapsed ? (
+                    <button className="mini-icon-btn" onClick={onToggle}>⚡</button>
+                ) : (
                     <>
-                        <div className="action-panel-header">
-                            <h3>액션 내역</h3>
-                            <button onClick={onToggle} className="panel-toggle">
-                                →
-                            </button>
-                        </div>
-
-                        <div className="action-panel-content">
-                            <div className="action-list">
-                                {actions.map((action, index) => (
-                                    <div key={action.id} className="action-item" style={{ animationDelay: `${index * 0.05}s` }}>
-                                        <div className="action-header">
-                                            <a href="#" className="action-tool-name" onClick={(e) => e.preventDefault()}>
-                                                {action.toolName}
-                                            </a>
-                                            <span
-                                                className="action-status"
-                                                style={{ color: getStatusColor(action.status) }}
-                                            >
-                                                ● {getStatusText(action.status)}
-                                            </span>
-                                        </div>
-                                        <div className="action-details">
-                                            <span className="action-time">{formatTime(action.timestamp)}</span>
-                                            <span className="action-duration">{action.duration}초</span>
-                                        </div>
-                                        {action.canRollback && !action.isRolledBack && (
-                                            <button
-                                                className="rollback-btn"
-                                                onClick={() => handleRollback(action.id)}
-                                            >
-                                                롤백
-                                            </button>
-                                        )}
-                                        {action.isRolledBack && (
-                                            <div className="rollback-info">
-                                                롤백됨 - {getStatusText(action.status)}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        <h3>액션 내역</h3>
+                        <button onClick={onToggle} className="panel-toggle">
+                            →
+                        </button>
                     </>
                 )}
-            </aside>
-        </>
+            </div>
+
+            {!isCollapsed && (
+                <div className="action-panel-content">
+                    <div className="action-list">
+                        {actions.map((action, index) => (
+                            <div key={action.id} className="action-item" style={{ animationDelay: `${index * 0.05}s` }}>
+                                <div className="action-header">
+                                    <a href="#" className="action-tool-name" onClick={(e) => e.preventDefault()}>
+                                        {action.toolName}
+                                    </a>
+                                    <span
+                                        className="action-status"
+                                        style={{ color: getStatusColor(action.status) }}
+                                    >
+                                        ● {getStatusText(action.status)}
+                                    </span>
+                                </div>
+                                <div className="action-details">
+                                    <span className="action-time">{formatTime(action.timestamp)}</span>
+                                    <span className="action-duration">{action.duration}초</span>
+                                </div>
+                                {action.canRollback && !action.isRolledBack && (
+                                    <button
+                                        className="rollback-btn"
+                                        onClick={() => handleRollback(action.id)}
+                                    >
+                                        롤백
+                                    </button>
+                                )}
+                                {action.isRolledBack && (
+                                    <div className="rollback-info">
+                                        롤백됨 - {getStatusText(action.status)}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </aside>
     );
 }
