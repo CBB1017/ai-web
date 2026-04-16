@@ -2,31 +2,47 @@
 
 /* 글로벌 테마 (프리미엄 미니멀 - 슬레이트 & 인디고) */
 :root {
-  --bg-main: #f1f5f9; /* 연한 슬레이트 그레이 */
+  --bg-main: #f1f5f9;
   --surface: #ffffff;
-  --text-primary: #0f172a; /* 아주 깊은 네이비 */
-  --text-secondary: #475569; /* 차분한 그레이 */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
   --text-muted: #94a3b8;
   --border-light: #e2e8f0;
-  --accent: #6366f1; /* 세련된 인디고 블루 */
+  --accent: #6366f1;
   --accent-hover: #4f46e5;
   --danger: #ef4444;
   
-  /* 사용자 메시지 (Deep Slate) */
   --user-bubble-bg: #1e293b; 
   --user-text: #ffffff;
-  --user-avatar-bg: #e2e8f0; /* 말풍선과 다른 색 (연한 그레이) */
+  --user-avatar-bg: #e2e8f0;
   --user-avatar-text: #475569;
   
-  /* AI 메시지 (Pure White with Shadow) */
   --ai-bubble-bg: #ffffff;
   --ai-text: #0f172a;
-  --ai-avatar-bg: #6366f1; /* 말풍선과 다른 색 (인디고 블루) */
+  --ai-avatar-bg: #6366f1;
   --ai-avatar-text: #ffffff;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-premium: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+/* 다크 모드 변수 */
+[data-theme='dark'] {
+  --bg-main: #0f172a;
+  --surface: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --border-light: #334155;
+  --accent: #818cf8;
+  --accent-hover: #6366f1;
+  
+  --user-bubble-bg: #334155;
+  --ai-bubble-bg: #1e293b;
+  --ai-text: #f8fafc;
+  
+  --shadow-premium: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -40,6 +56,7 @@ body {
   background: var(--bg-main);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 /* Linear Progress Bar */
@@ -51,8 +68,6 @@ body {
   height: 4px;
   background-color: var(--border-light);
   overflow: hidden;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
   z-index: 10;
 }
 
@@ -77,26 +92,65 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   background: var(--surface);
-  padding: 2.5rem 2rem;
+  padding: 3rem 2.5rem;
   border-radius: 24px;
   border: 1px solid var(--border-light);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
+  box-shadow: var(--shadow-premium);
+  text-align: center;
+}
+
+.login-header {
+  margin-bottom: 2.5rem;
+}
+
+.login-header h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.03em;
+}
+
+.login-header p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.input-group {
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.login-container input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.login-container input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 .login-container button {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.9rem;
   background: var(--accent);
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: 8px;
+  margin-top: 1rem;
   transition: all 0.2s;
 }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface MCPAction {
     id: string;
@@ -16,6 +17,7 @@ interface ActionPanelProps {
 }
 
 export default function ActionPanel({ isCollapsed, onToggle }: ActionPanelProps) {
+    const { t, i18n } = useTranslation();
     const [actions, setActions] = useState<MCPAction[]>([
         {
             id: '1',
@@ -76,18 +78,19 @@ export default function ActionPanel({ isCollapsed, onToggle }: ActionPanelProps)
     const getStatusText = (status: MCPAction['status']) => {
         switch (status) {
             case 'success':
-                return '성공';
+                return t('action.success');
             case 'failed':
-                return '실패';
+                return t('action.failed');
             case 'rollback-success':
-                return '롤백 성공';
+                return t('action.rollbackSuccess');
             case 'rollback-failed':
-                return '롤백 실패';
+                return t('action.rollbackFailed');
         }
     };
 
     const formatTime = (date: Date) => {
-        return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const locale = i18n.language === 'ko' ? 'ko-KR' : i18n.language === 'ja' ? 'ja-JP' : i18n.language === 'vi' ? 'vi-VN' : 'en-US';
+        return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     };
 
     return (
@@ -103,7 +106,7 @@ export default function ActionPanel({ isCollapsed, onToggle }: ActionPanelProps)
                     <button className="mini-icon-btn" onClick={onToggle}>⚡</button>
                 ) : (
                     <>
-                        <h3>액션 내역</h3>
+                        <h3>{t('action.title')}</h3>
                         <button onClick={onToggle} className="panel-toggle">
                             →
                         </button>
@@ -129,19 +132,19 @@ export default function ActionPanel({ isCollapsed, onToggle }: ActionPanelProps)
                                 </div>
                                 <div className="action-details">
                                     <span className="action-time">{formatTime(action.timestamp)}</span>
-                                    <span className="action-duration">{action.duration}초</span>
+                                    <span className="action-duration">{action.duration}{t('action.seconds')}</span>
                                 </div>
                                 {action.canRollback && !action.isRolledBack && (
                                     <button
                                         className="rollback-btn"
                                         onClick={() => handleRollback(action.id)}
                                     >
-                                        롤백
+                                        {t('action.rollback')}
                                     </button>
                                 )}
                                 {action.isRolledBack && (
                                     <div className="rollback-info">
-                                        롤백됨 - {getStatusText(action.status)}
+                                        {t('action.rolledBack')} - {getStatusText(action.status)}
                                     </div>
                                 )}
                             </div>

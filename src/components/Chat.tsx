@@ -8,10 +8,12 @@ import {useAuth} from "../context/AuthContext.tsx";
 import type {ChatMode, ChatRoom} from "../constants/constant.ts";
 import {useAtom} from "jotai";
 import {selectedRoomAtom} from "../store/store.ts";
+import { useTranslation } from 'react-i18next';
 
 export default function Chat() {
     const { user, logout } = useAuth();
     const [mode, setMode] = useState<ChatMode>('GENERAL');
+    const { t, i18n } = useTranslation();
 
     // 💡 이름과 직급을 분리하는 함수 (ex: 문병찬대리 -> 문병찬 대리)
     const formatUserName = (name?: string) => {
@@ -102,12 +104,16 @@ export default function Chat() {
     };
 
     const suggestions = [
-        "MCP 목록 확인하기",
-        "휴가 신청서 상신 (필요한 정보 안내)",
-        "OT 신청서 상신 (필요한 정보 안내)",
-        "이메일 요약",
-        "사내 규정 안내"
+        { key: 'mcp', text: t('chat.suggestions.mcp') },
+        { key: 'vacation', text: t('chat.suggestions.vacation') },
+        { key: 'ot', text: t('chat.suggestions.ot') },
+        { key: 'email', text: t('chat.suggestions.email') },
+        { key: 'rule', text: t('chat.suggestions.rule') }
     ];
+
+    const changeLanguage = (lng: string) => {
+        i18n.changeLanguage(lng);
+    };
 
     return (
         <div className={`chat-layout ${isSidebarPinned ? 'sidebar-pinned' : ''}`}>
@@ -136,7 +142,7 @@ export default function Chat() {
 
                 <div className="logo">
                     <span className="user-name">🤖 {formatUserName(user?.username)}</span>
-                    <span className="service-suffix">님의 AI Assistant</span>
+                    <span className="service-suffix">{t('chat.userSuffix')}</span>
                 </div>
 
                 <button className="mobile-action-toggle" onClick={handleActionPanelToggle}>
@@ -145,8 +151,17 @@ export default function Chat() {
 
                 <div className="mode-selector">
                     <select value={mode} onChange={(e) => setMode(e.target.value as ChatMode)} disabled={isLoading}>
-                        <option value="GENERAL">일반 대화</option>
-                        <option value="KNOWLEDGE">사내 지식 기반 (RAG)</option>
+                        <option value="GENERAL">{t('chat.modeGeneral')}</option>
+                        <option value="KNOWLEDGE">{t('chat.modeKnowledge')}</option>
+                    </select>
+                </div>
+
+                <div className="language-selector" style={{ display: 'flex', gap: '5px' }}>
+                    <select value={i18n.language} onChange={(e) => changeLanguage(e.target.value)} style={{ padding: '2px 5px', fontSize: '0.8rem', borderRadius: '5px' }}>
+                        <option value="ko">KO</option>
+                        <option value="en">EN</option>
+                        <option value="ja">JA</option>
+                        <option value="vi">VI</option>
                     </select>
                 </div>
 
@@ -156,7 +171,7 @@ export default function Chat() {
                         disabled={logoutMutation.isPending}
                         style={{ padding: '5px 10px', fontSize: '0.8rem', borderRadius: '8px', height: 'auto', width: 'auto' }}
                     >
-                        {logoutMutation.isPending ? '로그아웃 중...' : '로그아웃'}
+                        {logoutMutation.isPending ? t('chat.loggingOut') : t('chat.logout')}
                     </button>
                 </div>
             </header>
@@ -165,31 +180,33 @@ export default function Chat() {
                 {messages.length === 0 && !isLoading && (
                     <div className="welcome-container">
                         <div className="welcome-message">
-                            <p>🤖 안녕하세요, {formatUserName(user?.username)}님!</p>
-                            <p>궁금한 점을 물어보거나 아래 제안 중 하나를 선택해보세요.</p>
+                            <p>🤖 {t('chat.welcomeTitle', { name: formatUserName(user?.username) })}</p>
+                            <p>{t('chat.welcomeSubtitle')}</p>
                         </div>
                         <div className="suggestion-grid">
-                            {suggestions.map((text, idx) => (
+                            {suggestions.map((suggestion, idx) => (
                                 <button 
                                     key={idx} 
                                     className="suggestion-card"
-                                    onClick={() => handleSuggestionClick(text)}
+                                    onClick={() => handleSuggestionClick(suggestion.text)}
                                 >
-                                    {text}
+                                    {suggestion.text}
                                 </button>
                             ))}
                         </div>
                     </div>
                 )}
 
-                {messages.map((msg, idx) => (
-                    <MessageBubble key={idx} msg={msg} mode={mode} />
-                ))}
+                {messages
+                    .filter(msg => !(msg.role === 'ASSISTANT' && msg.content === ''))
+                    .map((msg, idx) => (
+                        <MessageBubble key={idx} msg={msg} mode={mode} />
+                    ))}
 
-                {isLoading && messages[messages.length - 1]?.content === '' && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)' }}>
+                {isLoading && (messages.length === 0 || messages[messages.length - 1]?.content === '') && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)', padding: '10px' }}>
                         <div className="loader"></div>
-                        <span>답변을 생성하는 중...</span>
+                        <span>{t('chat.generating')}</span>
                     </div>
                 )}
             </main>
@@ -202,28 +219,28 @@ export default function Chat() {
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                             if (!input.trim()) {
-                                alert("메시지를 입력해주세요.");
+                                alert(t('chat.inputEmptyAlert'));
                                 return;
                             }
                             handleSubmit();
                         }
                     }}
-                    placeholder={selectedRoom?.roomId ? "메시지를 입력하세요..." : "새 대화를 시작하려면 메시지를 입력하세요"}
+                    placeholder={selectedRoom?.roomId ? t('chat.inputPlaceholder') : t('chat.newChatPlaceholder')}
                     disabled={isLoading}
                 />
                 {isLoading ? (
-                    <button onClick={handleStop} className="stop-btn">중단</button>
+                    <button onClick={handleStop} className="stop-btn">{t('chat.stop')}</button>
                 ) : (
                     <button
                         onClick={() => {
                             if (!input.trim()) {
-                                alert("메시지를 입력해주세요.");
+                                alert(t('chat.inputEmptyAlert'));
                                 return;
                             }
                             handleSubmit();
                         }}
                     >
-                        전송
+                        {t('chat.send')}
                     </button>
                 )}
             </footer>

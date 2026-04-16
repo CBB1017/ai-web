@@ -1,7 +1,9 @@
 import type {Props} from "../constants/constant.ts";
+import { useTranslation } from 'react-i18next';
 
 export default function MessageBubble({ msg, mode }: Props) {
     const isUser = msg.role === 'USER';
+    const { t } = useTranslation();
 
     return (
         <div className={`message-wrapper ${isUser ? 'user' : 'ai'}`}>
@@ -18,7 +20,7 @@ export default function MessageBubble({ msg, mode }: Props) {
             </div>
             {isUser && (
                 <div className="avatar user">
-                    나
+                    {t('chat.me')}
                 </div>
             )}
         </div>

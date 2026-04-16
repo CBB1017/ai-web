@@ -4,17 +4,19 @@ import { selectedRoomAtom } from "../store/store.ts";
 import {useChatRooms} from "../hooks/useChatRooms.ts";
 import {useQueryClient} from "@tanstack/react-query";
 import {useTimeRefresh} from "../hooks/useTimeRefresh.ts";
+import { useTranslation } from 'react-i18next';
 
 export default function Sidebar({ isCollapsed, onToggle, isPinned, onPinToggle }: SidebarProps) {
     const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomAtom);
     const queryClient = useQueryClient();
     const now = useTimeRefresh();
+    const { t } = useTranslation();
 
     // 1. useChatRooms에서 반환된 값을 바로 변수로 매핑
     const { data: chatHistory = [], isLoading: loading } = useChatRooms(isCollapsed);
 
     const handleNewChat = () => {
-        setSelectedRoom({ roomId: '', title: '새 대화', updatedAt: '' });
+        setSelectedRoom({ roomId: '', title: t('sidebar.emptyChat'), updatedAt: '' });
     };
 
     const handleRoomClick = (chat: ChatRoom) => {
@@ -25,17 +27,17 @@ export default function Sidebar({ isCollapsed, onToggle, isPinned, onPinToggle }
     };
 
     const formatTime = (dateStr: string) => {
-        if (!dateStr) return '새 대화';
+        if (!dateStr) return t('sidebar.emptyChat');
         const date = new Date(dateStr);
         const diffMs = now.getTime() - date.getTime();
         const diffMinutes = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
 
-        if (diffMinutes < 5) return '방금 전';
-        if (diffMinutes < 60) return `${diffMinutes}분 전`;
-        if (diffHours < 24) return `${diffHours}시간 전`;
-        return `${diffDays}일 전`;
+        if (diffMinutes < 5) return t('sidebar.justNow');
+        if (diffMinutes < 60) return t('sidebar.minutesAgo', { count: diffMinutes });
+        if (diffHours < 24) return t('sidebar.hoursAgo', { count: diffHours });
+        return t('sidebar.daysAgo', { count: diffDays });
     };
 
     return (
@@ -52,11 +54,11 @@ export default function Sidebar({ isCollapsed, onToggle, isPinned, onPinToggle }
                 ) : (
                     <>
                         <button onClick={onToggle} className="sidebar-toggle">←</button>
-                        <h3>대화 기록</h3>
+                        <h3>{t('sidebar.history')}</h3>
                         <button 
                             className={`pin-btn ${isPinned ? 'active' : ''}`} 
                             onClick={onPinToggle}
-                            title={isPinned ? "고정 해제" : "사이드바 고정"}
+                            title={isPinned ? t('sidebar.unpin') : t('sidebar.pin')}
                         >
                             📌
                         </button>
@@ -66,10 +68,10 @@ export default function Sidebar({ isCollapsed, onToggle, isPinned, onPinToggle }
 
             {!isCollapsed && (
                 <div className="sidebar-content">
-                    <button className="new-chat-btn" onClick={handleNewChat}>+ 새 대화</button>
+                    <button className="new-chat-btn" onClick={handleNewChat}>{t('sidebar.newChat')}</button>
                     <div className="chat-list">
                         {loading ? (
-                            <div className="loading-spinner">로딩 중...</div>
+                            <div className="loading-spinner">{t('sidebar.loading')}</div>
                         ) : (
                             chatHistory.map((chat) => (
                                 <div

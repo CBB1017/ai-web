@@ -30,6 +30,9 @@ export const useAiStream = () => {
                         logout();
                         throw new Error("인증이 만료되었습니다. 다시 로그인해주세요.");
                     }
+                    if (res.status === 502 || res.status === 503) {
+                        throw { status: res.status, message: "HIGH_DEMAND" };
+                    }
                     if (!res.ok) {
                         const errorBody = await res.json().catch(() => ({}));
                         throw new Error(errorBody.message || `서버 오류 (${res.status})`);

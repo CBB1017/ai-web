@@ -6,9 +6,12 @@ import type { Message } from "../constants/constant.ts";
 import {selectedRoomAtom} from "../store/store.ts";
 import {useQueryClient} from "@tanstack/react-query";
 
+import { useTranslation } from 'react-i18next';
+
 export function useChatMessages() {
     // 1. Jotai Store 연동 (현재 선택된 방 정보)
     const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomAtom);
+    const { t } = useTranslation();
 
     // 2. Local State
     const [messages, setMessages] = useState<Message[]>([]);
@@ -115,7 +118,12 @@ export function useChatMessages() {
             });
         } catch (error: any) {
             if (error.name !== 'AbortError') {
-                const errorMessage = `⚠️ 오류가 발생했습니다.\n\n[상세 내용]\n${error.message || '알 수 없는 서버 오류'}`;
+                let errorMessage = `⚠️ 오류가 발생했습니다.\n\n[상세 내용]\n${error.message || '알 수 없는 서버 오류'}`;
+
+                if (error.message === 'HIGH_DEMAND' || error.status === 502 || error.status === 503) {
+                    errorMessage = `⚠️ ${t('chat.highDemandError')}`;
+                }
+
                 setMessages(prev => {
                     const lastMsg = prev[prev.length - 1];
                     if (lastMsg?.role === 'ASSISTANT') {
