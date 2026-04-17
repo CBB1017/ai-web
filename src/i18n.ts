@@ -11,7 +11,8 @@ const resources = {
                 id: "아이디",
                 password: "비밀번호",
                 btn: "로그인",
-                loading: "로그인 중..."
+                loading: "로그인 중...",
+                serverError: "서버와 통신할 수 없습니다. 백엔드 서비스 상태를 확인해주세요."
             },
             sidebar: {
                 newChat: "+ 새 대화",
@@ -34,6 +35,9 @@ const resources = {
                 welcomeTitle: "안녕하세요, {{name}}님!",
                 welcomeSubtitle: "궁금한 점을 물어보거나 아래 제안 중 하나를 선택해보세요.",
                 generating: "답변을 생성하는 중...",
+                congratulate: "축하하기",
+                birthday: "🎂 오늘은 {{name}}님의 생일입니다!",
+                notice: "📢 [공지] {{title}}",
                 stop: "중단",
                 inputPlaceholder: "메시지를 입력하세요...",
                 newChatPlaceholder: "새 대화를 시작하려면 메시지를 입력하세요",
@@ -69,7 +73,8 @@ const resources = {
                 id: "ID",
                 password: "Password",
                 btn: "Login",
-                loading: "Logging in..."
+                loading: "Logging in...",
+                serverError: "Cannot connect to the server. Please check the backend service status."
             },
             sidebar: {
                 newChat: "+ New Chat",
@@ -92,6 +97,9 @@ const resources = {
                 welcomeTitle: "Hello, {{name}}!",
                 welcomeSubtitle: "Ask anything or select one of the suggestions below.",
                 generating: "Generating response...",
+                congratulate: "Congratulate",
+                birthday: "🎂 Today is {{name}}'s birthday!",
+                notice: "📢 [Notice] {{title}}",
                 stop: "Stop",
                 inputPlaceholder: "Type a message...",
                 newChatPlaceholder: "Type a message to start a new chat",
@@ -127,7 +135,8 @@ const resources = {
                 id: "ID",
                 password: "パスワード",
                 btn: "ログイン",
-                loading: "ログイン中..."
+                loading: "ログイン中...",
+                serverError: "サーバーと通信できません。バックエンドサービスの状態を確認してください。"
             },
             sidebar: {
                 newChat: "+ 新規チャット",
@@ -150,7 +159,10 @@ const resources = {
                 welcomeTitle: "こんにちは、{{name}}さん！",
                 welcomeSubtitle: "気になることを聞いたり、以下の提案から1つ選択してください。",
                 generating: "回答を生成中...",
-                stop: "中断",
+                congratulate: "お祝いする",
+                birthday: "🎂 今日は{{name}}さんの誕生日です！",
+                notice: "📢 [お知らせ] {{title}}",
+                stop: "중단",
                 inputPlaceholder: "メッセージを入力...",
                 newChatPlaceholder: "新しい対話を開始するにはメッセージを入力してください",
                 send: "送信",
@@ -185,7 +197,8 @@ const resources = {
                 id: "Tên đăng nhập",
                 password: "Mật khẩu",
                 btn: "Đăng nhập",
-                loading: "Đang đăng nhập..."
+                loading: "Đang đăng nhập...",
+                serverError: "Không thể kết nối với máy chủ. Vui lòng kiểm tra trạng thái dịch vụ backend."
             },
             sidebar: {
                 newChat: "+ Cuộc trò chuyện mới",
@@ -206,8 +219,11 @@ const resources = {
                 modeGeneral: "Trò chuyện chung",
                 modeKnowledge: "Kiến thức nội bộ (RAG)",
                 welcomeTitle: "Xin chào, {{name}}!",
-                welcomeSubtitle: "Hãy đặt câu hỏi hoặc chọn một trong các gợi ý dưới đây.",
+                welcomeSubtitle: "Hãy đặt câu hỏi 또는 chọn một trong các gợi ý dưới đây.",
                 generating: "Đang tạo câu trả lời...",
+                congratulate: "Chúc mừng",
+                birthday: "🎂 Hôm nay là sinh nhật của {{name}}!",
+                notice: "📢 [Thông báo] {{title}}",
                 stop: "Dừng",
                 inputPlaceholder: "Nhập tin nhắn...",
                 newChatPlaceholder: "Nhập tin nhắn để bắt đầu cuộc trò chuyện mới",

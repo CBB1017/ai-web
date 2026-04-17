@@ -9,10 +9,13 @@ export const useAiStream = () => {
         url: string,
         prompt: string,
         roomId: string,
-        onMessage: (chunk: string) => void,
+        language: string,
+        onMessage: (chunk: string, intentId?: string) => void,
         signal?: AbortSignal,
         onRoomIdReceived?: (roomId: string) => void
     ) => {
+        let currentIntentId: string | undefined = undefined;
+
         try {
             await fetchEventSource(url, {
                 method: 'POST',
@@ -20,7 +23,7 @@ export const useAiStream = () => {
                     'Content-Type': 'application/json',
                     'Accept': 'text/event-stream',
                 },
-                body: JSON.stringify({ prompt, roomId }),
+                body: JSON.stringify({ prompt, roomId, language }),
                 credentials: 'include',
                 signal: signal,
                 openWhenHidden: true,
@@ -31,7 +34,7 @@ export const useAiStream = () => {
                         throw new Error("인증이 만료되었습니다. 다시 로그인해주세요.");
                     }
                     if (res.status === 502 || res.status === 503) {
-                        throw { status: res.status, message: "HIGH_DEMAND" };
+                        throw { status: res.status, message: "BACKEND_UNAVAILABLE" };
                     }
                     if (!res.ok) {
                         const errorBody = await res.json().catch(() => ({}));
@@ -42,14 +45,19 @@ export const useAiStream = () => {
                     if (newRoomId && onRoomIdReceived) {
                         onRoomIdReceived(newRoomId);
                     }
+
+                    const intentId = res.headers.get('X-Intent-Id');
+                    if (intentId) {
+                        currentIntentId = intentId;
+                    }
                 },
 
                 onmessage(ev) {
                     try {
                         const data = JSON.parse(ev.data);
-                        onMessage(data.response);
+                        onMessage(data.response, currentIntentId);
                     } catch {
-                        onMessage(ev.data);
+                        onMessage(ev.data, currentIntentId);
                     }
                 },
 

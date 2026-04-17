@@ -25,6 +25,13 @@
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-premium: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --textarea-max-h: 200px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --textarea-max-h: 120px;
+  }
 }
 
 /* 다크 모드 변수 */
@@ -410,28 +417,94 @@ header {
   margin: 0 auto;
   display: flex;
   gap: 12px;
+  align-items: flex-end;
 }
 
-.input-area input {
+.input-area textarea {
   flex: 1;
   padding: 0.9rem 1.25rem;
   border: 1px solid var(--border-light);
   border-radius: 16px;
   font-size: 1rem;
+  font-family: inherit;
   background: white;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s;
+  resize: none;
+  line-height: 1.5;
+  min-height: 54px;
+  max-height: var(--textarea-max-h);
+  overflow-y: auto;
 }
 
-.input-area input:focus {
+/* 텍스트 영역 전용 슬림 스크롤바 */
+.input-area textarea::-webkit-scrollbar {
+  width: 6px; /* 조금 더 넓게 조정 */
+}
+
+.input-area textarea::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* 메인 채팅창과 동일한 색상 */
+  border-radius: 10px;
+}
+
+.input-area textarea::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted); /* 마우스 올리면 더 진하게 */
+}
+
+.input-area textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.input-area textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
+/* Mode Indicator */
+.mode-indicator-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  justify-content: flex-end;
+  padding-right: 1.5rem;
+}
+
+.mode-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  transition: all 0.3s ease;
+}
+
+.mode-badge.rag {
+  background: #eef2ff;
+  color: #6366f1;
+  border-color: #c7d2fe;
+}
+
+.mode-badge.general {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.mode-badge.mcp {
+  background: #fff7ed;
+  color: #f97316;
+  border-color: #ffedd5;
+}
+
 /* 입력 영역 버튼 스타일 분리 */
 .input-area button {
   padding: 0 1.75rem;
+  height: 54px;
   color: white;
   border: none;
   border-radius: 16px;
@@ -443,6 +516,7 @@ header {
   justify-content: center;
   font-size: 0.95rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
 /* 전송 버튼 (Indigo) */
@@ -535,6 +609,116 @@ header {
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+/* 로딩 공지 컨테이너 */
+.loading-notice-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  margin: 10px 0;
+  max-width: fit-content;
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn 0.5s ease-out;
+}
+
+.loading-text-wrapper {
+  min-width: 200px;
+}
+
+.loading-text {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  display: block;
+}
+
+.notice-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.notice-link:hover {
+  text-decoration: underline;
+}
+
+.birthday-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.congratulate-btn {
+  padding: 4px 10px !important;
+  height: auto !important;
+  font-size: 0.8rem !important;
+  border-radius: 8px !important;
+}
+
+.fadeIn {
+  animation: fadeIn 0.8s ease-out;
+}
+
+/* 액션 리스트 보완 */
+.action-item {
+  background: var(--bg-main);
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-light);
+}
+
+.action-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.action-tool-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.action-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.action-details {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.rollback-btn {
+  width: 100%;
+  margin-top: 10px;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 6px !important;
+  height: auto !important;
+  font-size: 0.85rem !important;
+}
+
+.rollback-btn:hover {
+  background: #e2e8f0 !important;
+}
+
+.rollback-info {
+  margin-top: 8px;
+  padding: 6px;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--text-secondary);
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }

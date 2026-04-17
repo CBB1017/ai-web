@@ -33,9 +33,13 @@ export function AuthProvider({children}: { children: ReactNode }) {
                     // 세션이 없거나 만료됨
                     setIsAuthenticated(false);
                     setUser(null);
+                    
+                    if (res.status === 502 || res.status === 503) {
+                        console.error("Backend is unavailable (502/503)");
+                    }
                 }
             } catch (error) {
-                console.error("Session check failed:", error);
+                console.error("Session check failed (Network Error):", error);
                 setIsAuthenticated(false);
             } finally {
                 setIsLoading(false);
@@ -46,27 +50,44 @@ export function AuthProvider({children}: { children: ReactNode }) {
 
     // 2. 토큰 교환 방식의 로그인
     const login = async (userId: string, password: string) => {
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({userId, password}),
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            localStorage.setItem('accessToken', data.token); // 우리 JWT 저장
-            setUser({
-                username: data.username || data.name || 'User',
-                email: data.email,
-                dept: data.dept,
-                position: data.position
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userId, password}),
             });
-            setIsAuthenticated(true);
-        }
- else {
-            const errorData = await response.json();
-            // 백엔드에서 보낸 에러 구조에 따라 errorData.message 또는 errorData.error 등을 사용
-            throw new Error(errorData.error.detail || errorData.message  || '로그인에 실패했습니다.');
+
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('accessToken', data.token); // 우리 JWT 저장
+                setUser({
+                    username: data.username || data.name || 'User',
+                    email: data.email,
+                    dept: data.dept,
+                    position: data.position
+                });
+                setIsAuthenticated(true);
+            } else {
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (e) {
+                    // JSON 파싱 실패 (e.g. 502 HTML 에러 페이지)
+                    const error: any = new Error('서버 응답 처리 중 오류가 발생했습니다.');
+                    error.status = response.status;
+                    throw error;
+                }
+                
+                const error: any = new Error(errorData.error?.detail || errorData.message || '로그인에 실패했습니다.');
+                error.status = response.status;
+                throw error;
+            }
+        } catch (error: any) {
+            // 네트워크 에러 (서버 다운 등)
+            if (!error.status) {
+                error.status = 503; // Service Unavailable로 간주
+            }
+            throw error;
         }
     };
 

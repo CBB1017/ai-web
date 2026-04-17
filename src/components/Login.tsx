@@ -13,7 +13,7 @@ export default function Login() {
         },
         onError: (err: any) => {
             if (err.status === 502 || err.status === 503) {
-                alert(t('chat.highDemandError'));
+                alert(t('login.serverError'));
             } else {
                 alert(err.message);
             }

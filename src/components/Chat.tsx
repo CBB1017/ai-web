@@ -10,6 +10,49 @@ import {useAtom} from "jotai";
 import {selectedRoomAtom} from "../store/store.ts";
 import { useTranslation } from 'react-i18next';
 
+const MOCK_NOTICES = [
+    { type: 'NOTICE', title: '2024년 연봉 협상 안내', link: '#' },
+    { type: 'BIRTHDAY', name: '김철수 대리' },
+    { type: 'NOTICE', title: '신규 사내 복지 제도 시행', link: '#' },
+    { type: 'BIRTHDAY', name: '이영희 팀장' },
+];
+
+function LoadingNotice() {
+    const { t } = useTranslation();
+    const [index, setIndex] = useState(-1); // -1 means showing "Generating..."
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIndex((prev) => (prev + 1) % MOCK_NOTICES.length);
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="loading-notice-container">
+            <div className="loader"></div>
+            <div className="loading-text-wrapper">
+                {index === -1 ? (
+                    <span className="loading-text fadeIn">{t('chat.generating')}</span>
+                ) : (
+                    <div key={index} className="loading-text fadeIn">
+                        {MOCK_NOTICES[index].type === 'NOTICE' ? (
+                            <a href={MOCK_NOTICES[index].link} className="notice-link">
+                                {t('chat.notice', { title: MOCK_NOTICES[index].title })}
+                            </a>
+                        ) : (
+                            <div className="birthday-info">
+                                <span>{t('chat.birthday', { name: MOCK_NOTICES[index].name })}</span>
+                                <button className="congratulate-btn">{t('chat.congratulate')}</button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export default function Chat() {
     const { user, logout } = useAuth();
     const [mode, setMode] = useState<ChatMode>('GENERAL');
@@ -42,8 +85,25 @@ export default function Chat() {
         setInput,
         isLoading,
         handleSubmit,
-        handleStop
+        handleStop,
+        lastIntentId
     } = useChatMessages();
+
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // 💡 텍스트 입력 시 높이 자동 조절
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = '54px';
+            const scrollHeight = textareaRef.current.scrollHeight;
+            const maxHeight = window.innerWidth <= 768 ? 120 : 200;
+            const targetHeight = Math.min(Math.max(scrollHeight, 54), maxHeight);
+            textareaRef.current.style.height = `${targetHeight}px`;
+            
+            // maxHeight 넘을 때만 내부 스크롤 허용
+            textareaRef.current.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+        }
+    }, [input]);
 
     // 스크롤 이벤트 핸들러: 사용자가 수동으로 스크롤했는지 감지
     const handleScroll = () => {
@@ -114,6 +174,15 @@ export default function Chat() {
     const changeLanguage = (lng: string) => {
         i18n.changeLanguage(lng);
     };
+
+    const getModeInfo = () => {
+        if (!lastIntentId) return null;
+        if (lastIntentId === 'POLICY') return { label: 'RAG', className: 'rag' };
+        if (lastIntentId === 'GENERAL') return { label: '일반', className: 'general' };
+        return { label: 'MCP', className: 'mcp' };
+    };
+
+    const modeInfo = getModeInfo();
 
     return (
         <div className={`chat-layout ${isSidebarPinned ? 'sidebar-pinned' : ''}`}>
@@ -204,20 +273,35 @@ export default function Chat() {
                     ))}
 
                 {isLoading && (messages.length === 0 || messages[messages.length - 1]?.content === '') && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)', padding: '10px' }}>
-                        <div className="loader"></div>
-                        <span>{t('chat.generating')}</span>
-                    </div>
+                    <LoadingNotice />
                 )}
             </main>
 
+            {modeInfo && (
+                <div className="mode-indicator-container">
+                    <span className={`mode-badge ${modeInfo.className}`}>
+                        {modeInfo.label}
+                    </span>
+                </div>
+            )}
+
             <footer className="input-area">
-                <input
-                    type="text"
+                <textarea
+                    ref={textareaRef}
+                    rows={1}
+                    maxLength={3000}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
+                        // 💡 한글 입력 중 Enter 중복 처리 방지 (!e.nativeEvent.isComposing)
                         if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                            if (e.shiftKey || e.ctrlKey) {
+                                // Shift+Enter 또는 Ctrl+Enter 면 기본 동작(다음 줄 이동)을 허용
+                                return;
+                            }
+                            
+                            // 그냥 Enter면 전송
+                            e.preventDefault();
                             if (!input.trim()) {
                                 alert(t('chat.inputEmptyAlert'));
                                 return;
@@ -246,7 +330,7 @@ export default function Chat() {
             </footer>
         </div>
 
-            <ActionPanel isCollapsed={actionPanelCollapsed} onToggle={handleActionPanelToggle} />
+            <ActionPanel isCollapsed={actionPanelCollapsed} onToggle={handleActionPanelToggle} isLoading={isLoading} />
         </div>
     );
 }

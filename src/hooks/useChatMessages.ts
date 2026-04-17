@@ -11,12 +11,13 @@ import { useTranslation } from 'react-i18next';
 export function useChatMessages() {
     // 1. Jotai Store 연동 (현재 선택된 방 정보)
     const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomAtom);
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     // 2. Local State
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
+    const [lastIntentId, setLastIntentId] = useState<string | undefined>(undefined);
 
     const abortControllerRef = useRef<AbortController | null>(null);
     const { stream } = useAiStream();
@@ -65,6 +66,7 @@ export function useChatMessages() {
 
         setInput('');
         setIsStreaming(true);
+        setLastIntentId(undefined); // 새 요청 시 항상 초기화
         let currentRoomId = selectedRoom?.roomId || '';
         const isNewChat = !currentRoomId;
 
@@ -84,7 +86,9 @@ export function useChatMessages() {
                 `/api/ai/ask`,
                 textToSubmit,
                 currentRoomId,
-                (chunk) => {
+                i18n.language || 'ko',
+                (chunk, intentId) => {
+                    if (intentId) setLastIntentId(intentId);
                     setMessages(prev => {
                         const lastMsg = prev[prev.length - 1];
                         if (lastMsg?.role === 'ASSISTANT') {
@@ -120,7 +124,9 @@ export function useChatMessages() {
             if (error.name !== 'AbortError') {
                 let errorMessage = `⚠️ 오류가 발생했습니다.\n\n[상세 내용]\n${error.message || '알 수 없는 서버 오류'}`;
 
-                if (error.message === 'HIGH_DEMAND' || error.status === 502 || error.status === 503) {
+                if (error.status === 502 || error.status === 503) {
+                    errorMessage = `⚠️ ${t('login.serverError')}`;
+                } else if (error.message === 'HIGH_DEMAND') {
                     errorMessage = `⚠️ ${t('chat.highDemandError')}`;
                 }
 
@@ -153,6 +159,7 @@ export function useChatMessages() {
         setInput,
         isLoading,
         handleSubmit,
-        handleStop
+        handleStop,
+        lastIntentId
     };
 }
