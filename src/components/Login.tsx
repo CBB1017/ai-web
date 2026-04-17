@@ -23,8 +23,18 @@ export default function Login() {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
-        const userId = formData.get('id') as string;
-        const pass = formData.get('pass') as string;
+        const userId = (formData.get('id') as string || '').trim();
+        const pass = (formData.get('pass') as string || '').trim();
+
+        if (!userId || !pass) {
+            alert('아이디와 비밀번호를 입력해주세요.');
+            return;
+        }
+
+        if (userId.length > 50 || pass.length > 100) {
+            alert('입력값이 너무 깁니다.');
+            return;
+        }
         
         mutation.mutate({ userId, pass });
     };
@@ -46,6 +56,9 @@ export default function Login() {
                         name="id" 
                         placeholder={t('login.id')} 
                         required 
+                        maxLength={50}
+                        pattern="^[a-zA-Z0-9._-]+$"
+                        title="영문, 숫자, 특수문자(._-)만 가능합니다."
                         disabled={mutation.isPending}
                     />
                 </div>
@@ -55,6 +68,7 @@ export default function Login() {
                         type="password" 
                         placeholder={t('login.password')} 
                         required 
+                        maxLength={100}
                         disabled={mutation.isPending}
                     />
                 </div>

@@ -14,6 +14,8 @@ export default function MessageBubble({ msg, mode }: Props) {
             )}
             <div className="message-content">
                 <div className={`bubble ${isUser ? 'user' : 'ai'}`}>
+                    {/* React automatically escapes strings, preventing basic XSS. 
+                        Do NOT use dangerouslySetInnerHTML without DOMPurify. */}
                     {msg.content}
                 </div>
                 {/* 추후 타임스탬프 추가 가능 공간 */}
