@@ -55,7 +55,7 @@ function LoadingNotice() {
 
 export default function Chat() {
     const { user, logout } = useAuth();
-    const [mode, setMode] = useState<ChatMode>('GENERAL');
+    const [mode,] = useState<ChatMode>('GENERAL');
     const { t, i18n } = useTranslation();
 
     // 💡 이름과 직급을 분리하는 함수 (ex: 문병찬대리 -> 문병찬 대리)
@@ -218,12 +218,12 @@ export default function Chat() {
                     ⚡
                 </button>
 
-                <div className="mode-selector">
+                {/*<div className="mode-selector">
                     <select value={mode} onChange={(e) => setMode(e.target.value as ChatMode)} disabled={isLoading}>
                         <option value="GENERAL">{t('chat.modeGeneral')}</option>
                         <option value="KNOWLEDGE">{t('chat.modeKnowledge')}</option>
                     </select>
-                </div>
+                </div>*/}
 
                 <div className="language-selector" style={{ display: 'flex', gap: '5px' }}>
                     <select value={i18n.language} onChange={(e) => changeLanguage(e.target.value)} style={{ padding: '2px 5px', fontSize: '0.8rem', borderRadius: '5px' }}>
