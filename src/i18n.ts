@@ -55,6 +55,8 @@ const resources = {
             },
             action: {
                 title: "액션 내역",
+                all: "전체",
+                room: "채팅방",
                 success: "성공",
                 failed: "실패",
                 rollbackSuccess: "롤백 성공",
@@ -117,6 +119,8 @@ const resources = {
             },
             action: {
                 title: "Action History",
+                all: "All",
+                room: "Room",
                 success: "Success",
                 failed: "Failed",
                 rollbackSuccess: "Rollback Success",
@@ -179,6 +183,8 @@ const resources = {
             },
             action: {
                 title: "アクション履歴",
+                all: "全体",
+                room: "チャットルーム",
                 success: "成功",
                 failed: "失敗",
                 rollbackSuccess: "ロールバック成功",
@@ -241,6 +247,8 @@ const resources = {
             },
             action: {
                 title: "Lịch sử hành động",
+                all: "Tất cả",
+                room: "Phòng",
                 success: "Thành công",
                 failed: "Thất bại",
                 rollbackSuccess: "Khôi phục thành công",
@@ -259,6 +267,11 @@ i18n
     .init({
         resources,
         fallbackLng: 'ko',
+        load: 'languageOnly', // 'ko-KR' -> 'ko'로 취급
+        detection: {
+            order: ['localStorage', 'cookie', 'navigator', 'htmlTag'],
+            caches: ['localStorage', 'cookie'], // 변경 시 저장할 곳
+        },
         interpolation: {
             escapeValue: false
         }

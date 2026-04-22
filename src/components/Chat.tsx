@@ -9,6 +9,7 @@ import type {ChatMode, ChatRoom} from "../constants/constant.ts";
 import {useAtom} from "jotai";
 import {selectedRoomAtom} from "../store/store.ts";
 import { useTranslation } from 'react-i18next';
+import {useSseSubscription} from "../hooks/useSseSubscription";
 
 const MOCK_NOTICES = [
     { type: 'NOTICE', title: '2024년 연봉 협상 안내', link: '#' },
@@ -86,8 +87,13 @@ export default function Chat() {
         isLoading,
         handleSubmit,
         handleStop,
-        lastIntentId
+        updateMessageById,
+        lastIntentId,
+        addErrorMessage
     } = useChatMessages();
+
+    // SSE 구독 활성화 (메시지 업데이트 및 에러 처리)
+    useSseSubscription(updateMessageById, addErrorMessage);
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -226,7 +232,7 @@ export default function Chat() {
                 </div>*/}
 
                 <div className="language-selector" style={{ display: 'flex', gap: '5px' }}>
-                    <select value={i18n.language} onChange={(e) => changeLanguage(e.target.value)} style={{ padding: '2px 5px', fontSize: '0.8rem', borderRadius: '5px' }}>
+                    <select value={i18n.resolvedLanguage} onChange={(e) => changeLanguage(e.target.value)} style={{ padding: '2px 5px', fontSize: '0.8rem', borderRadius: '5px' }}>
                         <option value="ko">KO</option>
                         <option value="en">EN</option>
                         <option value="ja">JA</option>

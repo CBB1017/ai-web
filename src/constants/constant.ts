@@ -1,5 +1,10 @@
 export type ChatMode = 'GENERAL' | 'KNOWLEDGE';
-export type Message = { role: 'USER' | 'ASSISTANT'; content: string; createdAt?: string };
+export type Message = { 
+    id?: string; // 백엔드 DB ID 또는 임시 식별자
+    role: 'USER' | 'ASSISTANT';
+    content: string; 
+    createdAt?: string 
+};
 
 export interface SidebarProps {
     isCollapsed: boolean;

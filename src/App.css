@@ -250,3 +250,24 @@ header {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .loading-notice-container { display: flex; align-items: center; gap: 12px; padding: 0.8rem; background: var(--surface); border-radius: 12px; margin: 10px 0; max-width: fit-content; }
+
+/* Action Panel Pulse Animation */
+@keyframes action-pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.action-active {
+    animation: action-pulse 1.5s infinite ease-in-out;
+    color: #f59e0b !important; /* Amber color during action */
+}
+
+.action-spinner-mini {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(59, 130, 246, 0.3);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}

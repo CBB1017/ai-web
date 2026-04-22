@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useAtomValue } from 'jotai';
-import { selectedRoomAtom } from '../store/store';
-import {type ActionResponse, fetchRoomActions} from '../api/action';
+import { selectedRoomAtom, isActionInProgressAtom } from '../store/store';
+import { type ActionResponse, fetchRoomActions, fetchMyActions } from '../api/action';
 
 interface ActionPanelProps {
     isCollapsed: boolean;
@@ -11,21 +11,30 @@ interface ActionPanelProps {
     isLoading?: boolean;
 }
 
+type ViewMode = 'ROOM' | 'ALL';
+
 export default function ActionPanel({ isCollapsed, onToggle, isLoading }: ActionPanelProps) {
     const { t, i18n } = useTranslation();
     const selectedRoom = useAtomValue(selectedRoomAtom);
+    const isActionInProgress = useAtomValue(isActionInProgressAtom);
     const roomId = selectedRoom?.roomId;
+    
+    const [viewMode, setViewMode] = useState<ViewMode>('ROOM');
 
     const { data: actions = [], refetch } = useQuery({
-        queryKey: ['actions', roomId],
-        queryFn: () => fetchRoomActions(roomId),
-        enabled: !!roomId,
+        queryKey: ['actions', viewMode, roomId],
+        queryFn: () => {
+            if (viewMode === 'ROOM' && roomId) {
+                return fetchRoomActions(roomId);
+            }
+            return fetchMyActions();
+        },
+        enabled: viewMode === 'ALL' || !!roomId,
     });
 
-    // 💡 답변 생성 중일 때 주기적으로 액션 내역 갱신
     useEffect(() => {
         let interval: NodeJS.Timeout;
-        if (isLoading && roomId) {
+        if (isLoading && (viewMode === 'ALL' || (viewMode === 'ROOM' && roomId))) {
             interval = setInterval(() => {
                 refetch();
             }, 2000);
@@ -33,44 +42,31 @@ export default function ActionPanel({ isCollapsed, onToggle, isLoading }: Action
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [isLoading, roomId, refetch]);
+    }, [isLoading, viewMode, roomId, refetch]);
 
     const handleRollback = (_actionId: string) => {
-        // TODO: 백엔드 롤백 API 구현 시 연결
         console.log('Rollback requested for:', _actionId);
     };
 
     const getStatusColor = (status: ActionResponse['status']) => {
         switch (status) {
-            case 'SUCCESS':
-                return '#22c55e';
-            case 'FAILED':
-                return '#ef4444';
-            case 'ROLLBACK_SUCCESS':
-                return '#3b82f6';
-            case 'ROLLBACK_FAILED':
-                return '#f59e0b';
-            case 'RUNNING':
-                return '#3b82f6';
-            default:
-                return '#94a3b8';
+            case 'SUCCESS': return '#22c55e';
+            case 'FAILED': return '#ef4444';
+            case 'ROLLBACK_SUCCESS': return '#3b82f6';
+            case 'ROLLBACK_FAILED': return '#f59e0b';
+            case 'RUNNING': return '#3b82f6';
+            default: return '#94a3b8';
         }
     };
 
     const getStatusText = (status: ActionResponse['status']) => {
         switch (status) {
-            case 'SUCCESS':
-                return t('action.success');
-            case 'FAILED':
-                return t('action.failed');
-            case 'ROLLBACK_SUCCESS':
-                return t('action.rollbackSuccess');
-            case 'ROLLBACK_FAILED':
-                return t('action.rollbackFailed');
-            case 'RUNNING':
-                return '실행 중...'; // TODO: i18n 추가 필요 시 대응
-            default:
-                return status;
+            case 'SUCCESS': return t('action.success');
+            case 'FAILED': return t('action.failed');
+            case 'ROLLBACK_SUCCESS': return t('action.rollbackSuccess');
+            case 'ROLLBACK_FAILED': return t('action.rollbackFailed');
+            case 'RUNNING': return '실행 중...';
+            default: return status;
         }
     };
 
@@ -88,10 +84,18 @@ export default function ActionPanel({ isCollapsed, onToggle, isLoading }: Action
         >
             <div className="action-panel-header">
                 {isCollapsed ? (
-                    <button className="mini-icon-btn" onClick={onToggle}>⚡</button>
+                    <button 
+                        className={`mini-icon-btn ${isActionInProgress ? 'action-active' : ''}`} 
+                        onClick={onToggle}
+                    >
+                        {isActionInProgress ? '⏳' : '⚡'}
+                    </button>
                 ) : (
                     <>
-                        <h3>{t('action.title')}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h3>{t('action.title')}</h3>
+                            {isActionInProgress && <span className="action-spinner-mini"></span>}
+                        </div>
                         <button onClick={onToggle} className="panel-toggle">
                             →
                         </button>
@@ -100,53 +104,70 @@ export default function ActionPanel({ isCollapsed, onToggle, isLoading }: Action
             </div>
 
             {!isCollapsed && (
-                <div className="action-panel-content">
-                    <div className="action-list">
-                        {actions.length === 0 && !isLoading && (
-                            <div className="empty-actions" style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem' }}>
-                                표시할 액션이 없습니다.
-                            </div>
-                        )}
-                        {actions.map((action, index) => (
-                            <div key={action.id} className="action-item" style={{ animationDelay: `${index * 0.05}s` }}>
-                                <div className="action-header">
-                                    <span className="action-tool-name">
-                                        {action.actionName}
-                                    </span>
-                                    <span
-                                        className="action-status"
-                                        style={{ color: getStatusColor(action.status) }}
-                                    >
-                                        ● {getStatusText(action.status)}
-                                    </span>
-                                </div>
-                                <div className="action-details">
-                                    <span className="action-time">{formatTime(action.createdAt)}</span>
-                                </div>
-
-                                {action.status === 'FAILED' && action.content && (
-                                    <div className="action-error" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px' }}>
-                                        ⚠️ {action.content}
-                                    </div>
-                                )}
-
-                                {action.status === 'SUCCESS' && (
-                                    <button
-                                        className="rollback-btn"
-                                        onClick={() => handleRollback(action.id)}
-                                    >
-                                        {t('action.rollback')}
-                                    </button>
-                                )}
-                                {(action.status === 'ROLLBACK_SUCCESS' || action.status === 'ROLLBACK_FAILED') && (
-                                    <div className="rollback-info">
-                                        {t('action.rolledBack')} - {getStatusText(action.status)}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                <>
+                    <div className="action-view-selector">
+                        <button 
+                            className={viewMode === 'ROOM' ? 'active' : ''} 
+                            onClick={() => setViewMode('ROOM')}
+                        >
+                            {t('action.room')}
+                        </button>
+                        <button 
+                            className={viewMode === 'ALL' ? 'active' : ''} 
+                            onClick={() => setViewMode('ALL')}
+                        >
+                            {t('action.all')}
+                        </button>
                     </div>
-                </div>
+
+                    <div className="action-panel-content">
+                        <div className="action-list">
+                            {actions.length === 0 && !isLoading && (
+                                <div className="empty-actions" style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem' }}>
+                                    {viewMode === 'ROOM' && !roomId ? '채팅방을 선택해주세요.' : '표시할 액션이 없습니다.'}
+                                </div>
+                            )}
+                            {actions.map((action, index) => (
+                                <div key={action.id} className="action-item" style={{ animationDelay: `${index * 0.05}s` }}>
+                                    <div className="action-header">
+                                        <span className="action-tool-name">
+                                            {action.actionName}
+                                        </span>
+                                        <span
+                                            className="action-status"
+                                            style={{ color: getStatusColor(action.status) }}
+                                        >
+                                            ● {getStatusText(action.status)}
+                                        </span>
+                                    </div>
+                                    <div className="action-details">
+                                        <span className="action-time">{formatTime(action.createdAt)}</span>
+                                    </div>
+
+                                    {action.status === 'FAILED' && action.content && (
+                                        <div className="action-error" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px' }}>
+                                            ⚠️ {action.content}
+                                        </div>
+                                    )}
+
+                                    {action.status === 'SUCCESS' && (
+                                        <button
+                                            className="rollback-btn"
+                                            onClick={() => handleRollback(action.id)}
+                                        >
+                                            {t('action.rollback')}
+                                        </button>
+                                    )}
+                                    {(action.status === 'ROLLBACK_SUCCESS' || action.status === 'ROLLBACK_FAILED') && (
+                                        <div className="rollback-info">
+                                            {t('action.rolledBack')} - {getStatusText(action.status)}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </>
             )}
         </aside>
     );
