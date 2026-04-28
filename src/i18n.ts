@@ -49,7 +49,7 @@ const resources = {
                     mcp: "MCP 목록 확인하기",
                     vacation: "휴가 신청서 상신 (필요한 정보 안내)",
                     ot: "OT 신청서 상신 (필요한 정보 안내)",
-                    email: "이메일 요약",
+                    email: "이메일 목록 요약",
                     rule: "사내 규정 안내"
                 }
             },
@@ -113,7 +113,7 @@ const resources = {
                     mcp: "Check MCP List",
                     vacation: "Submit vacation request (guide on required info)",
                     ot: "Submit OT request (guide on required info)",
-                    email: "Email summary",
+                    email: "Email list summary",
                     rule: "Internal rules guide"
                 }
             },

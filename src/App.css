@@ -154,7 +154,7 @@ body {
 }
 
 @media (min-width: 1025px) {
-  .sidebar-pinned .container { margin-left: 0; }
+  .sidebar-pinned .container { margin-left: var(--sidebar-w); }
   .chat-layout.sidebar-pinned .sidebar { width: var(--sidebar-w) !important; }
 }
 
@@ -232,8 +232,30 @@ header {
 .linear-progress-bar { width: 100%; height: 100%; background: var(--accent); animation: lp 1.5s infinite; }
 @keyframes lp { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
-.mode-indicator-container { max-width: 900px; margin: 0 auto; padding: 0 1rem 4px; display: flex; justify-content: flex-end; }
-.mode-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 8px; font-weight: 700; }
+.textarea-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+}
+.input-area textarea {
+  width: 100%;
+  border: 1px solid var(--border-light);
+  border-radius: 18px; font-size: 16px; min-height: 54px;
+  max-height: var(--textarea-max-h); resize: none; background: var(--surface);
+  /* 배지가 들어갈 공간 확보 (우측 패딩 늘림) */
+  padding: 15px 64px 15px 16px;
+}
+.input-mode-badge {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none; /* 클릭 이벤트가 textarea로 전달되도록 설정 */
+  z-index: 5;
+}
+.mode-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 8px; font-weight: 700; box-shadow: var(--shadow-sm); }
 .mode-badge.rag { background: #eef2ff; color: #6366f1; }
 .mode-badge.general { background: #f8fafc; color: #475569; }
 .mode-badge.mcp { background: #fff7ed; color: #f97316; }

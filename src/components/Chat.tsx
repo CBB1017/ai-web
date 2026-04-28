@@ -159,7 +159,11 @@ export default function Chat() {
     };
 
     const toggleSidebarPin = () => {
-        setIsSidebarPinned(!isSidebarPinned);
+        const nextPinned = !isSidebarPinned;
+        setIsSidebarPinned(nextPinned);
+        if (nextPinned) {
+            setSidebarCollapsed(false);
+        }
     };
 
     // 💡 추천 제안 클릭 핸들러
@@ -283,41 +287,42 @@ export default function Chat() {
                 )}
             </main>
 
-            {modeInfo && (
-                <div className="mode-indicator-container">
-                    <span className={`mode-badge ${modeInfo.className}`}>
-                        {modeInfo.label}
-                    </span>
-                </div>
-            )}
-
             <footer className="input-area">
-                <textarea
-                    ref={textareaRef}
-                    rows={1}
-                    maxLength={3000}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                        // 💡 한글 입력 중 Enter 중복 처리 방지 (!e.nativeEvent.isComposing)
-                        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                            if (e.shiftKey || e.ctrlKey) {
-                                // Shift+Enter 또는 Ctrl+Enter 면 기본 동작(다음 줄 이동)을 허용
-                                return;
+                <div className="textarea-wrapper">
+                    <textarea
+                        ref={textareaRef}
+                        rows={1}
+                        maxLength={3000}
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => {
+                            // 💡 한글 입력 중 Enter 중복 처리 방지 (!e.nativeEvent.isComposing)
+                            if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                                if (e.shiftKey || e.ctrlKey) {
+                                    // Shift+Enter 또는 Ctrl+Enter 면 기본 동작(다음 줄 이동)을 허용
+                                    return;
+                                }
+                                
+                                // 그냥 Enter면 전송
+                                e.preventDefault();
+                                if (!input.trim()) {
+                                    alert(t('chat.inputEmptyAlert'));
+                                    return;
+                                }
+                                handleSubmit();
                             }
-                            
-                            // 그냥 Enter면 전송
-                            e.preventDefault();
-                            if (!input.trim()) {
-                                alert(t('chat.inputEmptyAlert'));
-                                return;
-                            }
-                            handleSubmit();
-                        }
-                    }}
-                    placeholder={selectedRoom?.roomId ? t('chat.inputPlaceholder') : t('chat.newChatPlaceholder')}
-                    disabled={isLoading}
-                />
+                        }}
+                        placeholder={selectedRoom?.roomId ? t('chat.inputPlaceholder') : t('chat.newChatPlaceholder')}
+                        disabled={isLoading}
+                    />
+                    {modeInfo && (
+                        <div className="input-mode-badge">
+                            <span className={`mode-badge ${modeInfo.className}`}>
+                                {modeInfo.label}
+                            </span>
+                        </div>
+                    )}
+                </div>
                 {isLoading ? (
                     <button onClick={handleStop} className="stop-btn">{t('chat.stop')}</button>
                 ) : (
