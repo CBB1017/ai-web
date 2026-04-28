@@ -24,8 +24,49 @@ export function useSseSubscription(
     useEffect(() => {
         if (!isAuthenticated) return;
 
-        logInfo('SSE: Subscription started');
-        const eventSource = new EventSource('/api/chat/sse/subscribe', { withCredentials: true });
+        let eventSource: EventSource | null = null;
+        let retryCount = 0;
+        const maxRetries = 10;
+        let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+
+        const connect = () => {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            logInfo(`SSE: Attempting connection (Retry: ${retryCount})`);
+            eventSource = new EventSource('/api/chat/sse/subscribe', { withCredentials: true });
+
+            eventSource.addEventListener('email-summary-complete', handleEmailSummary);
+            eventSource.addEventListener('error', handleErrorEvent);
+
+            eventSource.onopen = () => {
+                logInfo('SSE: Connection established');
+                retryCount = 0; // 성공 시 카운트 초기화
+            };
+
+            eventSource.onerror = (error) => {
+                logError('SSE: Connection error', error);
+                
+                if (eventSource) {
+                    eventSource.close();
+                    eventSource = null;
+                }
+
+                if (retryCount < maxRetries) {
+                    const delay = Math.min(1000 * Math.pow(2, retryCount), 30000); // 지수 백오프 (최대 30초)
+                    logInfo(`SSE: Retrying in ${delay}ms...`);
+                    retryTimeout = setTimeout(() => {
+                        retryCount++;
+                        connect();
+                    }, delay);
+                } else {
+                    logError('SSE: Max retries reached');
+                    onErrorMessageRef.current('알림 서버와의 연결이 끊겼습니다. 페이지를 새로고침 해주세요.');
+                    setIsActionInProgress(false);
+                }
+            };
+        };
 
         const handleEmailSummary = (event: MessageEvent) => {
             if (!event.data || event.data === 'undefined') {
@@ -35,7 +76,6 @@ export function useSseSubscription(
             try {
                 const data = JSON.parse(event.data);
                 if (data.messageId && data.content) {
-                    // Ref를 통해 최신 함수 호출
                     onMessageUpdateRef.current(data.messageId, data.content);
                     setIsActionInProgress(false);
                 }
@@ -62,21 +102,16 @@ export function useSseSubscription(
             }
         };
 
-        eventSource.addEventListener('email-summary-complete', handleEmailSummary);
-        eventSource.addEventListener('error', handleErrorEvent);
-
-        eventSource.onerror = (error) => {
-            logError('SSE: Connection error (onerror)', error);
-            setIsActionInProgress(false);
-            eventSource.close();
-        };
+        connect();
 
         return () => {
             logInfo('SSE: Subscription closed');
-            eventSource.removeEventListener('email-summary-complete', handleEmailSummary);
-            eventSource.removeEventListener('error', handleErrorEvent);
-            eventSource.close();
+            if (retryTimeout) clearTimeout(retryTimeout);
+            if (eventSource) {
+                eventSource.removeEventListener('email-summary-complete', handleEmailSummary);
+                eventSource.removeEventListener('error', handleErrorEvent);
+                eventSource.close();
+            }
         };
-        // 의존성 배열에서 콜백을 제외하여 재연결 방지
     }, [isAuthenticated, setIsActionInProgress]);
 }

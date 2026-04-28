@@ -70,12 +70,20 @@ export const useAiStream = () => {
                 },
 
                 onerror(err) {
-                    if (err.name === 'AbortError') {
+                    if (err.name === 'AbortError' || (err instanceof Error && err.message.includes('abort'))) {
                         logInfo("AI Stream aborted by user", { roomId });
-                        return;
+                        throw err; // Abort는 재시도하지 않도록 throw
                     }
-                    logError("AI Stream error occurred", err, { roomId, intentId: currentIntentId });
-                    throw err; // Rethrow to stop retry and catch in useChatMessages
+                    
+                    // 특정 상태 코드나 네트워크 에러 발생 시 로그만 남기고 throw 하지 않으면 fetchEventSource가 재시도함
+                    // 하지만 채팅(POST)의 경우 재시도가 위험할 수 있으므로, 4xx 에러 등은 즉시 중단하도록 설정
+                    if (err.status && err.status >= 400 && err.status < 500) {
+                        logError("AI Stream client error", err, { roomId, status: err.status });
+                        throw err; 
+                    }
+
+                    logError("AI Stream error occurred, will attempt retry if possible", err, { roomId, intentId: currentIntentId });
+                    // 여기서 throw를 하지 않으면 fetchEventSource의 기본 설정에 따라 재시도함
                 }
             });
         } catch (err: any) {

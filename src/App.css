@@ -189,6 +189,7 @@ header {
 
 .bubble {
   padding: 0.8rem 1rem; border-radius: 18px; font-size: 0.95rem; line-height: 1.5;
+  white-space: pre-wrap;
 }
 .bubble.user { background: var(--user-bubble-bg); color: var(--user-text); border-top-right-radius: 4px; order: 1; }
 .bubble.ai { background: var(--ai-bubble-bg); color: var(--ai-text); border: 1px solid var(--border-light); border-top-left-radius: 4px; }
