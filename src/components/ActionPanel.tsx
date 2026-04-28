@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAtomValue } from 'jotai';
 import { selectedRoomAtom, isActionInProgressAtom } from '../store/store';
 import { type ActionResponse, fetchRoomActions, fetchMyActions } from '../api/action';
+import { logInfo } from '../otel';
 
 interface ActionPanelProps {
     isCollapsed: boolean;
@@ -44,8 +45,8 @@ export default function ActionPanel({ isCollapsed, onToggle, isLoading }: Action
         };
     }, [isLoading, viewMode, roomId, refetch]);
 
-    const handleRollback = (_actionId: string) => {
-        console.log('Rollback requested for:', _actionId);
+    const handleRollback = (actionId: string) => {
+        logInfo('Rollback requested', { actionId });
     };
 
     const getStatusColor = (status: ActionResponse['status']) => {

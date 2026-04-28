@@ -8,36 +8,53 @@ import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { W3CTraceContextPropagator } from '@opentelemetry/core';
 
-// Initialize the OTLP Trace Exporter
-const exporter = new OTLPTraceExporter({
+// Logs 관련 임포트
+import { logs, SeverityNumber } from '@opentelemetry/api-logs';
+import {
+  LoggerProvider,
+  BatchLogRecordProcessor,
+} from '@opentelemetry/sdk-logs';
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+
+const serviceName = 'ai-web';
+const resource = resourceFromAttributes({
+    [ATTR_SERVICE_NAME]: serviceName,
+});
+
+// --- Trace 설정 ---
+const traceExporter = new OTLPTraceExporter({
   url: import.meta.env.VITE_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT || 'http://localhost:4318/v1/traces',
-  headers: {},
 });
 
-// Configure the Tracer Provider
-const provider = new WebTracerProvider({
-  resource: resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: 'ai-web',
-  }),
-  spanProcessors: [new BatchSpanProcessor(exporter)],
+const tracerProvider = new WebTracerProvider({
+  resource: resource,
+  spanProcessors: [new BatchSpanProcessor(traceExporter)],
 });
 
-// Register the Provider with W3C Trace Context Propagator
-// This enables the browser to send 'traceparent' headers to the backend
-provider.register({
+tracerProvider.register({
   propagator: new W3CTraceContextPropagator(),
 });
 
-// Register Automatic Instrumentations
+// --- Logs 설정 ---
+const logExporter = new OTLPLogExporter({
+  url: import.meta.env.VITE_OTEL_EXPORTER_OTLP_LOGS_ENDPOINT || 'http://localhost:4318/v1/logs',
+});
+
+const loggerProvider = new LoggerProvider({
+  resource: resource,
+  processors: [new BatchLogRecordProcessor(logExporter)],
+});
+
+// 전역 로그 프로바이더 등록
+logs.setGlobalLoggerProvider(loggerProvider);
+
+// --- 자동 인스트루멘테이션 ---
 registerInstrumentations({
   instrumentations: [
     new FetchInstrumentation({
       ignoreUrls: [/localhost:4318/],
-      // IMPORTANT: Configure which URLs should receive the trace headers.
-      // Add your Spring Boot server URL pattern here.
       propagateTraceHeaderCorsUrls: [
-        /localhost:8080/, // Standard Spring Boot port
-        // Add other API endpoints as needed, e.g., /https:\/\/api\.example\.com/
+        /localhost:8080/,
       ],
     }),
     new XMLHttpRequestInstrumentation({
@@ -47,4 +64,29 @@ registerInstrumentations({
   ],
 });
 
-console.log('OpenTelemetry initialized with Trace Context Propagation');
+// 편의를 위한 헬퍼 함수
+export const appLogger = logs.getLogger(serviceName);
+
+export const logInfo = (message: string, attributes?: Record<string, any>) => {
+    appLogger.emit({
+        severityNumber: SeverityNumber.INFO,
+        severityText: 'INFO',
+        body: message,
+        attributes: attributes,
+    });
+};
+
+export const logError = (message: string, error?: any, attributes?: Record<string, any>) => {
+    appLogger.emit({
+        severityNumber: SeverityNumber.ERROR,
+        severityText: 'ERROR',
+        body: message,
+        attributes: {
+            ...attributes,
+            'error.message': error?.message,
+            'error.stack': error?.stack,
+        },
+    });
+};
+
+logInfo('OpenTelemetry Trace & Logs initialized');

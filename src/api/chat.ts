@@ -1,52 +1,37 @@
 import type {ChatRoom} from "../constants/constant.ts";
 
 export const fetchChatMessages = async (roomId: string) => {
-    try {
-        const response = await fetch(`/api/chat/room/${roomId}/messages`);
-        if (!response.ok) {
-            const error: any = new Error("History 로드 실패");
-            error.status = response.status;
-            throw error;
-        }
-        return response.json();
-    } catch (error: any) {
-        if (!error.status) error.status = 503;
+    const response = await fetch(`/api/chat/room/${roomId}/messages`);
+    if (!response.ok) {
+        const error: any = new Error("History 로드 실패");
+        error.status = response.status;
         throw error;
     }
+    return response.json();
 };
 
 export const fetchChatRooms = async (): Promise<ChatRoom[]> => {
-    try {
-        const res = await fetch('/api/chat/rooms', { credentials: 'include' });
-        if (!res.ok) {
-            const error: any = new Error('채팅방 목록을 불러오는데 실패했습니다.');
-            error.status = res.status;
-            throw error;
-        }
-        return res.json();
-    } catch (error: any) {
-        if (!error.status) error.status = 503;
+    const res = await fetch('/api/chat/rooms', { credentials: 'include' });
+    if (!res.ok) {
+        const error: any = new Error('채팅방 목록을 불러오는데 실패했습니다.');
+        error.status = res.status;
         throw error;
     }
+    return res.json();
 };
 
 export const fetchSaveChatRoom = async (title: string = '새로운 대화'): Promise<ChatRoom> => {
-    try {
-        const res = await fetch('/api/chat/room', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title })
-        });
+    const res = await fetch('/api/chat/room', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+    });
 
-        if (!res.ok) {
-            const error: any = new Error('채팅방 저장에 실패했습니다.');
-            error.status = res.status;
-            throw error;
-        }
-        return res.json();
-    } catch (error: any) {
-        if (!error.status) error.status = 503;
+    if (!res.ok) {
+        const error: any = new Error('채팅방 저장에 실패했습니다.');
+        error.status = res.status;
         throw error;
     }
+    return res.json();
 };

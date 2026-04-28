@@ -1,5 +1,6 @@
 import {createContext, useContext, useState, useEffect, type ReactNode} from 'react';
 import type {AuthContextType, UserInfo} from "../constants/constant.ts";
+import { logInfo, logError } from "../otel.ts";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -29,17 +30,20 @@ export function AuthProvider({children}: { children: ReactNode }) {
                         position: data.position
                     });
                     setIsAuthenticated(true);
+                    logInfo("Session check: Authenticated", { username: data.username });
                 } else {
                     // 세션이 없거나 만료됨
                     setIsAuthenticated(false);
                     setUser(null);
                     
                     if (res.status === 502 || res.status === 503) {
-                        console.error("Backend is unavailable (502/503)");
+                        logError("Session check: Backend unavailable", new Error(`HTTP ${res.status}`), { status: res.status });
+                    } else {
+                        logInfo("Session check: No active session", { status: res.status });
                     }
                 }
-            } catch (error) {
-                console.error("Session check failed (Network Error):", error);
+            } catch (error: any) {
+                logError("Session check: Network error", error);
                 setIsAuthenticated(false);
             } finally {
                 setIsLoading(false);
@@ -67,6 +71,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
                     position: data.position
                 });
                 setIsAuthenticated(true);
+                logInfo("Login: Success", { userId });
             } else {
                 let errorData;
                 try {
@@ -75,11 +80,13 @@ export function AuthProvider({children}: { children: ReactNode }) {
                     // JSON 파싱 실패 (e.g. 502 HTML 에러 페이지)
                     const error: any = new Error('서버 응답 처리 중 오류가 발생했습니다.');
                     error.status = response.status;
+                    logError("Login: Non-JSON error response", error, { status: response.status, userId });
                     throw error;
                 }
                 
                 const error: any = new Error(errorData.error?.detail || errorData.message || '로그인에 실패했습니다.');
                 error.status = response.status;
+                logError("Login: Failed", error, { status: response.status, userId });
                 throw error;
             }
         } catch (error: any) {
@@ -87,6 +94,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
             if (!error.status) {
                 error.status = 503; // Service Unavailable로 간주
             }
+            logError("Login: Exception", error, { userId });
             throw error;
         }
     };
@@ -95,6 +103,9 @@ export function AuthProvider({children}: { children: ReactNode }) {
         try {
             // 서버에 로그아웃 요청
             await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+            logInfo("Logout: Success", { username: user?.username });
+        } catch (error: any) {
+            logError("Logout: Failed", error);
         } finally {
             localStorage.removeItem('accessToken');
             setUser(null);

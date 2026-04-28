@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSetAtom } from 'jotai';
 import { isActionInProgressAtom } from '../store/store';
+import { logInfo, logError } from '../otel';
 
 export function useSseSubscription(
     onMessageUpdate: (messageId: string, content: string) => void,
@@ -23,10 +24,14 @@ export function useSseSubscription(
     useEffect(() => {
         if (!isAuthenticated) return;
 
-        console.log('SSE 구독 시작 (최초 1회)');
+        logInfo('SSE: Subscription started');
         const eventSource = new EventSource('/api/chat/sse/subscribe', { withCredentials: true });
 
         const handleEmailSummary = (event: MessageEvent) => {
+            if (!event.data || event.data === 'undefined') {
+                logError('SSE: Received empty or undefined data in email-summary-complete');
+                return;
+            }
             try {
                 const data = JSON.parse(event.data);
                 if (data.messageId && data.content) {
@@ -35,17 +40,25 @@ export function useSseSubscription(
                     setIsActionInProgress(false);
                 }
             } catch (e) {
-                console.error('SSE data parsing error:', e);
+                logError('SSE: Data parsing error', e, { rawData: event.data });
             }
         };
 
         const handleErrorEvent = (event: MessageEvent) => {
+            if (!event.data || event.data === 'undefined') {
+                logError('SSE: Received empty or undefined data in error event');
+                onErrorMessageRef.current('알 수 없는 서버 오류가 발생했습니다.');
+                setIsActionInProgress(false);
+                return;
+            }
             try {
                 const data = JSON.parse(event.data);
                 onErrorMessageRef.current(data.message || '오류가 발생했습니다.');
                 setIsActionInProgress(false);
             } catch (e) {
-                console.error('SSE error data parsing error:', e);
+                logError('SSE: Error data parsing error', e, { rawData: event.data });
+                onErrorMessageRef.current('서버 응답 처리 중 오류가 발생했습니다.');
+                setIsActionInProgress(false);
             }
         };
 
@@ -53,13 +66,13 @@ export function useSseSubscription(
         eventSource.addEventListener('error', handleErrorEvent);
 
         eventSource.onerror = (error) => {
-            console.error('SSE connection error:', error);
+            logError('SSE: Connection error (onerror)', error);
             setIsActionInProgress(false);
             eventSource.close();
         };
 
         return () => {
-            console.log('SSE 구독 해제');
+            logInfo('SSE: Subscription closed');
             eventSource.removeEventListener('email-summary-complete', handleEmailSummary);
             eventSource.removeEventListener('error', handleErrorEvent);
             eventSource.close();

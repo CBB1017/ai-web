@@ -5,9 +5,24 @@ import './index.css'
 import './i18n.ts'
 import App from './App.tsx'
 import {AuthProvider} from "./context/AuthContext.tsx";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query';
+import { logError } from "./otel.ts";
 
 const queryClient = new QueryClient({
+    queryCache: new QueryCache({
+        onError: (error, query) => {
+            logError("Query Error", error, { 
+                queryKey: JSON.stringify(query.queryKey),
+            });
+        },
+    }),
+    mutationCache: new MutationCache({
+        onError: (error, _variables, _context, mutation) => {
+            logError("Mutation Error", error, { 
+                mutationKey: mutation.options.mutationKey ? JSON.stringify(mutation.options.mutationKey) : 'Unknown Mutation',
+            });
+        },
+    }),
     defaultOptions: {
         queries: {
             refetchOnWindowFocus: false, // 브라우저 탭 이동 시 자동 재요청 방지

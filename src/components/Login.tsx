@@ -57,7 +57,7 @@ export default function Login() {
                         placeholder={t('login.id')} 
                         required 
                         maxLength={50}
-                        pattern="^[a-zA-Z0-9._-]+$"
+                        pattern="[a-zA-Z0-9._-]+"
                         title="영문, 숫자, 특수문자(._-)만 가능합니다."
                         disabled={mutation.isPending}
                     />
