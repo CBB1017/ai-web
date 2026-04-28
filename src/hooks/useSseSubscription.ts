@@ -6,7 +6,9 @@ import { logInfo, logError } from '../otel';
 
 export function useSseSubscription(
     onMessageUpdate: (messageId: string, content: string) => void,
-    onErrorMessage: (error: string) => void
+    onErrorMessage: (error: string) => void,
+    onTitleUpdate: (roomId: string, title: string) => void,
+    onActionUpdate: (action: any) => void
 ) {
     const { isAuthenticated } = useAuth();
     const setIsActionInProgress = useSetAtom(isActionInProgressAtom);
@@ -14,11 +16,15 @@ export function useSseSubscription(
     // 콜백 함수들을 Ref에 저장하여 의존성에서 제거
     const onMessageUpdateRef = useRef(onMessageUpdate);
     const onErrorMessageRef = useRef(onErrorMessage);
+    const onTitleUpdateRef = useRef(onTitleUpdate);
+    const onActionUpdateRef = useRef(onActionUpdate);
 
     // 렌더링될 때마다 Ref 업데이트 (최신 참조 유지)
     useEffect(() => {
         onMessageUpdateRef.current = onMessageUpdate;
         onErrorMessageRef.current = onErrorMessage;
+        onTitleUpdateRef.current = onTitleUpdate;
+        onActionUpdateRef.current = onActionUpdate;
     });
 
     useEffect(() => {
@@ -38,6 +44,8 @@ export function useSseSubscription(
             eventSource = new EventSource('/api/chat/sse/subscribe', { withCredentials: true });
 
             eventSource.addEventListener('email-summary-complete', handleEmailSummary);
+            eventSource.addEventListener('chat-title-update', handleTitleUpdate);
+            eventSource.addEventListener('action-update', handleActionUpdate);
             eventSource.addEventListener('error', handleErrorEvent);
 
             eventSource.onopen = () => {
@@ -84,6 +92,28 @@ export function useSseSubscription(
             }
         };
 
+        const handleTitleUpdate = (event: MessageEvent) => {
+            if (!event.data || event.data === 'undefined') return;
+            try {
+                const data = JSON.parse(event.data);
+                if (data.roomId && data.title) {
+                    onTitleUpdateRef.current(data.roomId, data.title);
+                }
+            } catch (e) {
+                logError('SSE: Title update parsing error', e);
+            }
+        };
+
+        const handleActionUpdate = (event: MessageEvent) => {
+            if (!event.data || event.data === 'undefined') return;
+            try {
+                const data = JSON.parse(event.data);
+                onActionUpdateRef.current(data);
+            } catch (e) {
+                logError('SSE: Action update parsing error', e);
+            }
+        };
+
         const handleErrorEvent = (event: MessageEvent) => {
             if (!event.data || event.data === 'undefined') {
                 logError('SSE: Received empty or undefined data in error event');
@@ -109,6 +139,8 @@ export function useSseSubscription(
             if (retryTimeout) clearTimeout(retryTimeout);
             if (eventSource) {
                 eventSource.removeEventListener('email-summary-complete', handleEmailSummary);
+                eventSource.removeEventListener('chat-title-update', handleTitleUpdate);
+                eventSource.removeEventListener('action-list-update', handleActionUpdate);
                 eventSource.removeEventListener('error', handleErrorEvent);
                 eventSource.close();
             }

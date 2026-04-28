@@ -130,8 +130,18 @@ body {
 .sidebar-header h3, .action-panel-header h3 { font-size: 0.9rem; font-weight: 700; white-space: nowrap; }
 
 /* 내부 콘텐츠 */
-.sidebar-content, .action-panel-content { flex: 1; overflow-y: auto; padding: 1rem; }
-.sidebar.collapsed .sidebar-content, .action-panel.collapsed .action-panel-content { display: none; }
+.sidebar-content, .action-panel-content { 
+  flex: 1; overflow-y: auto; padding: 1rem;
+  transition: opacity 0.2s ease, visibility 0.2s;
+}
+
+.sidebar.collapsed .sidebar-content, 
+.action-panel.collapsed .action-view-selector,
+.action-panel.collapsed .action-panel-content {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 
 /* 사이드바 전용 요소 */
 .new-chat-btn {
@@ -142,6 +152,10 @@ body {
 .chat-item { 
   padding: 0.75rem; border-radius: 10px; cursor: pointer; font-size: 0.85rem;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-bottom: 1px solid var(--border-light);
+}
+.chat-item:last-child {
+  border-bottom: none;
 }
 .chat-item:hover { background: var(--bg-main); }
 .chat-item.active { background: #eef2ff; color: var(--accent); font-weight: 700; }
@@ -224,7 +238,14 @@ header {
 }
 
 .mobile-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 900;
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .mobile-backdrop {
+    display: block;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 900;
+  }
 }
 
 /* 기타 UI */
@@ -293,4 +314,107 @@ header {
     border-top-color: #3b82f6;
     border-radius: 50%;
     animation: spin 1s linear infinite;
+}
+
+/* ⚡ 액션 패널 전용 스타일 */
+.action-view-selector {
+  display: flex;
+  padding: 0.5rem 1rem;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-main);
+  transition: opacity 0.2s ease, visibility 0.2s;
+}
+
+.action-view-selector button {
+  flex: 1;
+  padding: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-view-selector button.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.action-item {
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.action-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.action-tool-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.action-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.action-details {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.action-time {
+  color: var(--text-muted);
+}
+
+.rollback-btn {
+  margin-top: 4px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rollback-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.rollback-info {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
 }

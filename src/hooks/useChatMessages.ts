@@ -139,11 +139,13 @@ export function useChatMessages() {
                             title: textToSubmit.slice(0, 20) + '...',
                             updatedAt: new Date().toISOString()
                         });
-                        queryClient.invalidateQueries({queryKey: ['chatRooms']});
+                        // 💡 즉시 사이드바 목록 무효화하여 새로운 방 표시
+                        // queryClient.invalidateQueries({queryKey: ['chatRooms']});
                     }
                 }
             );
 
+            // await queryClient.invalidateQueries({ queryKey: ['chatRooms'] }); // SSE에서 처리하므로 주석 처리
             await queryClient.invalidateQueries({ queryKey: ['chatMessages', currentRoomId] });
             logInfo("AI Stream completed successfully", { roomId: currentRoomId });
         } catch (error: any) {
@@ -162,7 +164,7 @@ export function useChatMessages() {
         } finally {
             setIsStreaming(false);
             abortControllerRef.current = null;
-            await queryClient.invalidateQueries({queryKey: ['chatRooms']});
+            // queryClient.invalidateQueries({queryKey: ['chatRooms']}); // SSE에서 처리하므로 제거
         }
     };
 

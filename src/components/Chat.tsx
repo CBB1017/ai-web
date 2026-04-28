@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChatMessages } from '../hooks/useChatMessages';
-import { useMutation } from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import MessageBubble from './MessageBubble';
 import Sidebar from './Sidebar';
 import ActionPanel from './ActionPanel';
@@ -10,6 +10,7 @@ import {useAtom} from "jotai";
 import {selectedRoomAtom} from "../store/store.ts";
 import { useTranslation } from 'react-i18next';
 import {useSseSubscription} from "../hooks/useSseSubscription";
+import {logInfo} from "../otel.ts";
 
 const MOCK_NOTICES = [
     { type: 'NOTICE', title: '2024년 연봉 협상 안내', link: '#' },
@@ -73,7 +74,7 @@ export default function Chat() {
         },
     });
 
-    const [selectedRoom,] = useAtom<ChatRoom>(selectedRoomAtom);
+    const [selectedRoom, setSelectedRoom] = useAtom<ChatRoom>(selectedRoomAtom);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
     const [actionPanelCollapsed, setActionPanelCollapsed] = useState(true);
     const [isSidebarPinned, setIsSidebarPinned] = useState(false);
@@ -92,8 +93,28 @@ export default function Chat() {
         addErrorMessage
     } = useChatMessages();
 
-    // SSE 구독 활성화 (메시지 업데이트 및 에러 처리)
-    useSseSubscription(updateMessageById, addErrorMessage);
+    const queryClient = useQueryClient();
+
+    // SSE 구독 활성화 (메시지 업데이트, 에러 처리, 제목 업데이트, 액션 업데이트)
+    useSseSubscription(
+        updateMessageById, 
+        addErrorMessage,
+        (roomId, title) => {
+            logInfo('SSE: Received title update', { roomId, title });
+            // 💡 사이드바 목록 갱신
+            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+            
+            // 💡 현재 보고 있는 방이라면 제목 업데이트
+            if (selectedRoom?.roomId === roomId) {
+                setSelectedRoom(prev => prev ? { ...prev, title } : prev);
+            }
+        },
+        (action) => {
+            logInfo('SSE: Received action update', action);
+            // 💡 액션 목록 갱신
+            queryClient.invalidateQueries({ queryKey: ['actions'] });
+        }
+    );
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -341,7 +362,12 @@ export default function Chat() {
             </footer>
         </div>
 
-            <ActionPanel isCollapsed={actionPanelCollapsed} onToggle={handleActionPanelToggle} isLoading={isLoading} />
+            <ActionPanel 
+                isCollapsed={actionPanelCollapsed} 
+                onToggle={handleActionPanelToggle} 
+                isLoading={isLoading} 
+                intentId={lastIntentId}
+            />
         </div>
     );
 }

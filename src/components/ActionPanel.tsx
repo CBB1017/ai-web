@@ -10,19 +10,27 @@ interface ActionPanelProps {
     isCollapsed: boolean;
     onToggle: () => void;
     isLoading?: boolean;
+    intentId?: string;
 }
 
 type ViewMode = 'ROOM' | 'ALL';
 
-export default function ActionPanel({ isCollapsed, onToggle, isLoading }: ActionPanelProps) {
+export default function ActionPanel({ isCollapsed, onToggle, isLoading, intentId }: ActionPanelProps) {
     const { t, i18n } = useTranslation();
     const selectedRoom = useAtomValue(selectedRoomAtom);
     const isActionInProgress = useAtomValue(isActionInProgressAtom);
     const roomId = selectedRoom?.roomId;
     
-    const [viewMode, setViewMode] = useState<ViewMode>('ROOM');
+    const [viewMode, setViewMode] = useState<ViewMode>('ALL');
 
-    const { data: actions = [], refetch } = useQuery({
+    // 방이 바뀌거나 액션이 시작되면 자동으로 'ROOM' 모드로 전환
+    useEffect(() => {
+        if (roomId || isActionInProgress) {
+            setViewMode('ROOM');
+        }
+    }, [roomId, isActionInProgress]);
+
+    const { data: actions = [] } = useQuery({
         queryKey: ['actions', viewMode, roomId],
         queryFn: () => {
             if (viewMode === 'ROOM' && roomId) {
@@ -32,18 +40,6 @@ export default function ActionPanel({ isCollapsed, onToggle, isLoading }: Action
         },
         enabled: viewMode === 'ALL' || !!roomId,
     });
-
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isLoading && (viewMode === 'ALL' || (viewMode === 'ROOM' && roomId))) {
-            interval = setInterval(() => {
-                refetch();
-            }, 2000);
-        }
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, [isLoading, viewMode, roomId, refetch]);
 
     const handleRollback = (actionId: string) => {
         logInfo('Rollback requested', { actionId });
@@ -104,72 +100,69 @@ export default function ActionPanel({ isCollapsed, onToggle, isLoading }: Action
                 )}
             </div>
 
-            {!isCollapsed && (
-                <>
-                    <div className="action-view-selector">
-                        <button 
-                            className={viewMode === 'ROOM' ? 'active' : ''} 
-                            onClick={() => setViewMode('ROOM')}
-                        >
-                            {t('action.room')}
-                        </button>
-                        <button 
-                            className={viewMode === 'ALL' ? 'active' : ''} 
-                            onClick={() => setViewMode('ALL')}
-                        >
-                            {t('action.all')}
-                        </button>
-                    </div>
+            <div className="action-view-selector">
+                <button 
+                    className={viewMode === 'ROOM' ? 'active' : ''} 
+                    onClick={() => setViewMode('ROOM')}
+                >
+                    {t('action.room')}
+                </button>
+                <button 
+                    className={viewMode === 'ALL' ? 'active' : ''} 
+                    onClick={() => setViewMode('ALL')}
+                >
+                    {t('action.all')}
+                </button>
+            </div>
 
-                    <div className="action-panel-content">
-                        <div className="action-list">
-                            {actions.length === 0 && !isLoading && (
-                                <div className="empty-actions" style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem' }}>
-                                    {viewMode === 'ROOM' && !roomId ? '채팅방을 선택해주세요.' : '표시할 액션이 없습니다.'}
+            <div className="action-panel-content">
+                <div className="action-list">
+                    {actions.length === 0 && !isLoading && (
+                        <div className="empty-actions" style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem' }}>
+                            {viewMode === 'ROOM' && !roomId ? '채팅방을 선택해주세요.' : '표시할 액션이 없습니다.'}
+                        </div>
+                    )}
+                    {actions.map((action, index) => (
+                        <div key={action.id} className="action-item" style={{ animationDelay: `${index * 0.05}s` }}>
+                            <div className="action-header">
+                                <span className="action-tool-name">
+                                    {action.actionName}
+                                </span>
+                                <span
+                                    className="action-status"
+                                    style={{ color: getStatusColor(action.status) }}
+                                >
+                                    ● {getStatusText(action.status)}
+                                </span>
+                            </div>
+                            <div className="action-details">
+                                <span className="action-time">{formatTime(action.createdAt)}</span>
+                            </div>
+
+                            {action.status === 'FAILED' && action.content && (
+                                <div className="action-error" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px' }}>
+                                    ⚠️ {action.content}
                                 </div>
                             )}
-                            {actions.map((action, index) => (
-                                <div key={action.id} className="action-item" style={{ animationDelay: `${index * 0.05}s` }}>
-                                    <div className="action-header">
-                                        <span className="action-tool-name">
-                                            {action.actionName}
-                                        </span>
-                                        <span
-                                            className="action-status"
-                                            style={{ color: getStatusColor(action.status) }}
-                                        >
-                                            ● {getStatusText(action.status)}
-                                        </span>
-                                    </div>
-                                    <div className="action-details">
-                                        <span className="action-time">{formatTime(action.createdAt)}</span>
-                                    </div>
 
-                                    {action.status === 'FAILED' && action.content && (
-                                        <div className="action-error" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px' }}>
-                                            ⚠️ {action.content}
-                                        </div>
-                                    )}
-
-                                    {action.status === 'SUCCESS' && (
-                                        <button
-                                            className="rollback-btn"
-                                            onClick={() => handleRollback(action.id)}
-                                        >
-                                            {t('action.rollback')}
-                                        </button>
-                                    )}
-                                    {(action.status === 'ROLLBACK_SUCCESS' || action.status === 'ROLLBACK_FAILED') && (
-                                        <div className="rollback-info">
-                                            {t('action.rolledBack')} - {getStatusText(action.status)}
-                                        </div>
-                                    )}
+                            {/* MCP 모드일 때만 롤백 버튼 표시 */}
+                            {action.status === 'SUCCESS' && intentId === 'MCP' && (
+                                <button
+                                    className="rollback-btn"
+                                    onClick={() => handleRollback(action.id)}
+                                >
+                                    {t('action.rollback')}
+                                </button>
+                            )}
+                            {(action.status === 'ROLLBACK_SUCCESS' || action.status === 'ROLLBACK_FAILED') && (
+                                <div className="rollback-info">
+                                    {t('action.rolledBack')} - {getStatusText(action.status)}
                                 </div>
-                            ))}
+                            )}
                         </div>
-                    </div>
-                </>
-            )}
+                    ))}
+                </div>
+            </div>
         </aside>
     );
 }

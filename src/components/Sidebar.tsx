@@ -13,7 +13,7 @@ export default function Sidebar({ isCollapsed, onToggle, isPinned, onPinToggle }
     const { t } = useTranslation();
 
     // 1. useChatRooms에서 반환된 값을 바로 변수로 매핑
-    const { data: chatHistory = [], isLoading: loading } = useChatRooms(isCollapsed);
+    const { data: chatHistory = [], isLoading: loading } = useChatRooms();
 
     const handleNewChat = () => {
         setSelectedRoom({ roomId: '', title: t('sidebar.emptyChat'), updatedAt: '' });
@@ -66,27 +66,25 @@ export default function Sidebar({ isCollapsed, onToggle, isPinned, onPinToggle }
                 )}
             </div>
 
-            {!isCollapsed && (
-                <div className="sidebar-content">
-                    <button className="new-chat-btn" onClick={handleNewChat}>{t('sidebar.newChat')}</button>
-                    <div className="chat-list">
-                        {loading ? (
-                            <div className="loading-spinner">{t('sidebar.loading')}</div>
-                        ) : (
-                            chatHistory.map((chat) => (
-                                <div
-                                    key={chat.roomId}
-                                    className={`chat-item ${selectedRoom?.roomId === chat.roomId ? 'active' : ''}`}
-                                    onClick={() => handleRoomClick(chat)}
-                                >
-                                    <div className="chat-item-title">{chat.title}</div>
-                                    <div className="chat-item-time">{formatTime(chat.updatedAt)}</div>
-                                </div>
-                            ))
-                        )}
-                    </div>
+            <div className="sidebar-content">
+                <button className="new-chat-btn" onClick={handleNewChat}>{t('sidebar.newChat')}</button>
+                <div className="chat-list">
+                    {loading ? (
+                        <div className="loading-spinner">{t('sidebar.loading')}</div>
+                    ) : (
+                        chatHistory.map((chat) => (
+                            <div
+                                key={chat.roomId}
+                                className={`chat-item ${selectedRoom?.roomId === chat.roomId ? 'active' : ''}`}
+                                onClick={() => handleRoomClick(chat)}
+                            >
+                                <div className="chat-item-title">{chat.title}</div>
+                                <div className="chat-item-time">{formatTime(chat.updatedAt)}</div>
+                            </div>
+                        ))
+                    )}
                 </div>
-            )}
+            </div>
         </aside>
     );
 }
