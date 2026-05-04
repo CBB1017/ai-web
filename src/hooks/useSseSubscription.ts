@@ -1,14 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSetAtom } from 'jotai';
-import { isActionInProgressAtom } from '../store/store';
+import { isActionInProgressAtom, type BirthdayResponse } from '../store/store';
 import { logInfo, logError } from '../otel';
 
 export function useSseSubscription(
     onMessageUpdate: (messageId: string, content: string) => void,
     onErrorMessage: (error: string) => void,
     onTitleUpdate: (roomId: string, title: string) => void,
-    onActionUpdate: (action: any) => void
+    onActionUpdate: (action: any) => void,
+    onBirthdayUpdate?: (birthdays: BirthdayResponse[]) => void
 ) {
     const { isAuthenticated } = useAuth();
     const setIsActionInProgress = useSetAtom(isActionInProgressAtom);
@@ -18,6 +19,7 @@ export function useSseSubscription(
     const onErrorMessageRef = useRef(onErrorMessage);
     const onTitleUpdateRef = useRef(onTitleUpdate);
     const onActionUpdateRef = useRef(onActionUpdate);
+    const onBirthdayUpdateRef = useRef(onBirthdayUpdate);
 
     // 렌더링될 때마다 Ref 업데이트 (최신 참조 유지)
     useEffect(() => {
@@ -25,6 +27,7 @@ export function useSseSubscription(
         onErrorMessageRef.current = onErrorMessage;
         onTitleUpdateRef.current = onTitleUpdate;
         onActionUpdateRef.current = onActionUpdate;
+        onBirthdayUpdateRef.current = onBirthdayUpdate;
     });
 
     useEffect(() => {
@@ -41,11 +44,12 @@ export function useSseSubscription(
             }
 
             logInfo(`SSE: Attempting connection (Retry: ${retryCount})`);
-            eventSource = new EventSource('/api/chat/sse/subscribe', { withCredentials: true });
+            eventSource = new EventSource('/api/v1/chat/sse/subscribe', { withCredentials: true });
 
             eventSource.addEventListener('email-summary-complete', handleEmailSummary);
             eventSource.addEventListener('chat-title-update', handleTitleUpdate);
-            eventSource.addEventListener('action-update', handleActionUpdate);
+            eventSource.addEventListener('action-list-update', handleActionUpdate);
+            eventSource.addEventListener('birthday-update', handleBirthdayUpdate);
             eventSource.addEventListener('error', handleErrorEvent);
 
             eventSource.onopen = () => {
@@ -114,6 +118,18 @@ export function useSseSubscription(
             }
         };
 
+        const handleBirthdayUpdate = (event: MessageEvent) => {
+            if (!event.data || event.data === 'undefined') return;
+            try {
+                const data = JSON.parse(event.data);
+                if (onBirthdayUpdateRef.current) {
+                    onBirthdayUpdateRef.current(data);
+                }
+            } catch (e) {
+                logError('SSE: Birthday update parsing error', e);
+            }
+        };
+
         const handleErrorEvent = (event: MessageEvent) => {
             if (!event.data || event.data === 'undefined') {
                 logError('SSE: Received empty or undefined data in error event');
@@ -141,6 +157,7 @@ export function useSseSubscription(
                 eventSource.removeEventListener('email-summary-complete', handleEmailSummary);
                 eventSource.removeEventListener('chat-title-update', handleTitleUpdate);
                 eventSource.removeEventListener('action-list-update', handleActionUpdate);
+                eventSource.removeEventListener('birthday-update', handleBirthdayUpdate);
                 eventSource.removeEventListener('error', handleErrorEvent);
                 eventSource.close();
             }

@@ -111,7 +111,7 @@ export function useChatMessages() {
             abortControllerRef.current = controller;
 
             await stream(
-                `/api/ai/ask`,
+                `/api/v1/ai/ask`,
                 textToSubmit,
                 currentRoomId,
                 i18n.language || 'ko',

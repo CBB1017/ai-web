@@ -102,7 +102,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
     const logout = async () => {
         try {
             // 서버에 로그아웃 요청
-            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+            await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' });
             logInfo("Logout: Success", { username: user?.username });
         } catch (error: any) {
             logError("Logout: Failed", error);

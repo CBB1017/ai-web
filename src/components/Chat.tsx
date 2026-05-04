@@ -6,45 +6,69 @@ import Sidebar from './Sidebar';
 import ActionPanel from './ActionPanel';
 import {useAuth} from "../context/AuthContext.tsx";
 import type {ChatMode, ChatRoom} from "../constants/constant.ts";
-import {useAtom} from "jotai";
-import {selectedRoomAtom} from "../store/store.ts";
+import {useAtom, useSetAtom} from "jotai";
+import {selectedRoomAtom, birthdaysAtom} from "../store/store.ts";
 import { useTranslation } from 'react-i18next';
 import {useSseSubscription} from "../hooks/useSseSubscription";
 import {logInfo} from "../otel.ts";
+import {fetchBirthdays} from "../api/birthday.ts";
 
 const MOCK_NOTICES = [
     { type: 'NOTICE', title: '2024년 연봉 협상 안내', link: '#' },
-    { type: 'BIRTHDAY', name: '김철수 대리' },
     { type: 'NOTICE', title: '신규 사내 복지 제도 시행', link: '#' },
-    { type: 'BIRTHDAY', name: '이영희 팀장' },
 ];
 
 function LoadingNotice() {
     const { t } = useTranslation();
     const [index, setIndex] = useState(-1); // -1 means showing "Generating..."
+    const [birthdays] = useAtom(birthdaysAtom);
+    const [combinedNotices, setCombinedNotices] = useState<any[]>([]);
 
     useEffect(() => {
+        // 공지와 생일자 데이터를 섞음
+        const birthdayNotices = birthdays.map(b => ({
+            type: 'BIRTHDAY',
+            name: `${b.name} ${b.position}`
+        }));
+
+        // 랜덤 셔플 함수
+        const shuffle = (array: any[]) => {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        };
+
+        const combined = shuffle([...MOCK_NOTICES, ...birthdayNotices]);
+        setCombinedNotices(combined);
+    }, [birthdays]);
+
+    useEffect(() => {
+        if (combinedNotices.length === 0) return;
+        
         const interval = setInterval(() => {
-            setIndex((prev) => (prev + 1) % MOCK_NOTICES.length);
+            setIndex((prev) => (prev + 1) % combinedNotices.length);
         }, 3000);
         return () => clearInterval(interval);
-    }, []);
+    }, [combinedNotices.length]);
 
     return (
         <div className="loading-notice-container">
             <div className="loader"></div>
             <div className="loading-text-wrapper">
-                {index === -1 ? (
+                {index === -1 || combinedNotices.length === 0 ? (
                     <span className="loading-text fadeIn">{t('chat.generating')}</span>
                 ) : (
                     <div key={index} className="loading-text fadeIn">
-                        {MOCK_NOTICES[index].type === 'NOTICE' ? (
-                            <a href={MOCK_NOTICES[index].link} className="notice-link">
-                                {t('chat.notice', { title: MOCK_NOTICES[index].title })}
+                        {combinedNotices[index].type === 'NOTICE' ? (
+                            <a href={combinedNotices[index].link} className="notice-link">
+                                {t('chat.notice', { title: combinedNotices[index].title })}
                             </a>
                         ) : (
                             <div className="birthday-info">
-                                <span>{t('chat.birthday', { name: MOCK_NOTICES[index].name })}</span>
+                                <span>{t('chat.birthday', { name: combinedNotices[index].name })}</span>
                                 <button className="congratulate-btn">{t('chat.congratulate')}</button>
                             </div>
                         )}
@@ -95,7 +119,19 @@ export default function Chat() {
 
     const queryClient = useQueryClient();
 
-    // SSE 구독 활성화 (메시지 업데이트, 에러 처리, 제목 업데이트, 액션 업데이트)
+    const setBirthdays = useSetAtom(birthdaysAtom);
+    const [birthdays] = useAtom(birthdaysAtom);
+
+    // 💡 초기 생일자 데이터 로드
+    useEffect(() => {
+        if (birthdays.length === 0) {
+            fetchBirthdays().then(setBirthdays).catch(err => {
+                logInfo('Failed to fetch birthdays', err);
+            });
+        }
+    }, [birthdays.length, setBirthdays]);
+
+    // SSE 구독 활성화 (메시지 업데이트, 에러 처리, 제목 업데이트, 액션 업데이트, 생일자 업데이트)
     useSseSubscription(
         updateMessageById, 
         addErrorMessage,
@@ -113,6 +149,10 @@ export default function Chat() {
             logInfo('SSE: Received action update', action);
             // 💡 액션 목록 갱신
             queryClient.invalidateQueries({ queryKey: ['actions'] });
+        },
+        (updatedBirthdays) => {
+            logInfo('SSE: Received birthday update', updatedBirthdays);
+            setBirthdays(updatedBirthdays);
         }
     );
 

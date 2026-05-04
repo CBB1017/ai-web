@@ -11,7 +11,7 @@ export interface ActionResponse {
 export const fetchRoomActions = async (roomId: string): Promise<ActionResponse[]> => {
     if (!roomId) return [];
 
-    const response = await fetch(`/api/actions/room/${roomId}`, {
+    const response = await fetch(`/api/v1/actions/room/${roomId}`, {
         credentials: 'include'
     });
 
@@ -25,7 +25,7 @@ export const fetchRoomActions = async (roomId: string): Promise<ActionResponse[]
 };
 
 export const fetchMyActions = async (): Promise<ActionResponse[]> => {
-    const response = await fetch(`/api/actions/my`, {
+    const response = await fetch(`/api/v1/actions/my`, {
         credentials: 'include'
     });
 

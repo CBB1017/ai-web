@@ -1,7 +1,7 @@
 import type {ChatRoom} from "../constants/constant.ts";
 
 export const fetchChatMessages = async (roomId: string) => {
-    const response = await fetch(`/api/chat/room/${roomId}/messages`);
+    const response = await fetch(`/api/v1/chat/room/${roomId}/messages`);
     if (!response.ok) {
         const error: any = new Error("History 로드 실패");
         error.status = response.status;
@@ -11,7 +11,7 @@ export const fetchChatMessages = async (roomId: string) => {
 };
 
 export const fetchChatRooms = async (): Promise<ChatRoom[]> => {
-    const res = await fetch('/api/chat/rooms', { credentials: 'include' });
+    const res = await fetch('/api/v1/chat/rooms', { credentials: 'include' });
     if (!res.ok) {
         const error: any = new Error('채팅방 목록을 불러오는데 실패했습니다.');
         error.status = res.status;
@@ -21,7 +21,7 @@ export const fetchChatRooms = async (): Promise<ChatRoom[]> => {
 };
 
 export const fetchSaveChatRoom = async (title: string = '새로운 대화'): Promise<ChatRoom> => {
-    const res = await fetch('/api/chat/room', {
+    const res = await fetch('/api/v1/chat/room', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
