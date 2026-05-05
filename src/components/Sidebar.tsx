@@ -56,7 +56,7 @@ export default function Sidebar({ isCollapsed, onToggle, isPinned, onPinToggle }
                         <button onClick={onToggle} className="sidebar-toggle">←</button>
                         <h3>{t('sidebar.history')}</h3>
                         <button 
-                            className={`pin-btn ${isPinned ? 'active' : ''}`} 
+                            className={`pin-btn pc-only ${isPinned ? 'active' : ''}`} 
                             onClick={onPinToggle}
                             title={isPinned ? t('sidebar.unpin') : t('sidebar.pin')}
                         >

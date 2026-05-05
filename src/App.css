@@ -232,7 +232,6 @@ header {
     flex: 1 1 0;
     justify-content: flex-end;
     min-width: 0;
-    overflow: hidden;
   }
 
   .logo .user-name, .logo .service-suffix, .pc-logout-btn {
@@ -253,6 +252,10 @@ header {
     padding: 2px;
     font-size: 0.7rem;
     max-width: 45px;
+  }
+
+  .pc-only {
+    display: none !important;
   }
 }
 
@@ -456,7 +459,10 @@ header {
   max-width: 900px; width: 100%; margin: 0 auto;
 }
 
-.message-wrapper { display: flex; gap: 12px; max-width: 85%; }
+.message-wrapper { display: flex; gap: 12px; max-width: 85%; min-width: 0; }
+.message-content { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.message-wrapper.user .message-content { align-items: flex-end; }
+.message-wrapper.ai .message-content { align-items: flex-start; }
 .message-wrapper.user { align-self: flex-end; }
 .message-wrapper.ai { align-self: flex-start; }
 
@@ -471,6 +477,8 @@ header {
 .bubble {
   padding: 0.8rem 1rem; border-radius: 18px; font-size: 0.95rem; line-height: 1.5;
   white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .bubble.user { background: var(--user-bubble-bg); color: var(--user-text); border-top-right-radius: 4px; order: 1; }
 .bubble.ai { background: var(--ai-bubble-bg); color: var(--ai-text); border: 1px solid var(--border-light); border-top-left-radius: 4px; position: relative; }
