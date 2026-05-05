@@ -9,13 +9,14 @@ import { logInfo } from '../otel';
 interface ActionPanelProps {
     isCollapsed: boolean;
     onToggle: () => void;
+    onSidebarOpen?: () => void;
     isLoading?: boolean;
     intentId?: string;
 }
 
 type ViewMode = 'ROOM' | 'ALL';
 
-export default function ActionPanel({ isCollapsed, onToggle, isLoading, intentId }: ActionPanelProps) {
+export default function ActionPanel({ isCollapsed, onToggle, onSidebarOpen, isLoading, intentId }: ActionPanelProps) {
     const { t, i18n } = useTranslation();
     const selectedRoom = useAtomValue(selectedRoomAtom);
     const isActionInProgress = useAtomValue(isActionInProgressAtom);
@@ -119,7 +120,29 @@ export default function ActionPanel({ isCollapsed, onToggle, isLoading, intentId
                 <div className="action-list">
                     {actions.length === 0 && !isLoading && (
                         <div className="empty-actions" style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem' }}>
-                            {viewMode === 'ROOM' && !roomId ? '채팅방을 선택해주세요.' : '표시할 액션이 없습니다.'}
+                            {viewMode === 'ROOM' && !roomId ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
+                                    <span>{t('action.selectRoomPrompt', { defaultValue: '채팅방을 선택해주세요.' })}</span>
+                                    {onSidebarOpen && (
+                                        <button 
+                                            onClick={onSidebarOpen}
+                                            style={{ 
+                                                padding: '5px 10px', 
+                                                fontSize: '0.75rem', 
+                                                borderRadius: '6px', 
+                                                border: '1px solid var(--accent)',
+                                                background: 'transparent',
+                                                color: 'var(--accent)',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            {t('action.openSidebar', { defaultValue: '사이드바 열기' })}
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                t('action.noActions', { defaultValue: '표시할 액션이 없습니다.' })
+                            )}
                         </div>
                     )}
                     {actions.map((action, index) => (

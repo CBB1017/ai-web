@@ -1,7 +1,13 @@
-import type {Props} from "../constants/constant.ts";
+import type {Message} from "../constants/constant.ts";
 import { useTranslation } from 'react-i18next';
 
-export default function MessageBubble({ msg, mode }: Props) {
+interface MessageBubbleProps {
+    msg: Message;
+    mode?: string;
+    isActionInProgress?: boolean;
+}
+
+export default function MessageBubble({ msg, mode, isActionInProgress }: MessageBubbleProps) {
     const isUser = msg.role === 'USER';
     const { t } = useTranslation();
 
@@ -14,11 +20,15 @@ export default function MessageBubble({ msg, mode }: Props) {
             )}
             <div className="message-content">
                 <div className={`bubble ${isUser ? 'user' : 'ai'}`}>
-                    {/* React automatically escapes strings, preventing basic XSS. 
-                        Do NOT use dangerouslySetInnerHTML without DOMPurify. */}
                     {msg.content}
+                    {!isUser && isActionInProgress && (
+                        <div className="message-action-spinner">
+                            <span className="dot"></span>
+                            <span className="dot"></span>
+                            <span className="dot"></span>
+                        </div>
+                    )}
                 </div>
-                {/* 추후 타임스탬프 추가 가능 공간 */}
             </div>
             {isUser && (
                 <div className="avatar user">

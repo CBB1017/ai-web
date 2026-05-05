@@ -6,29 +6,33 @@ import Sidebar from './Sidebar';
 import ActionPanel from './ActionPanel';
 import {useAuth} from "../context/AuthContext.tsx";
 import type {ChatMode, ChatRoom} from "../constants/constant.ts";
-import {useAtom, useSetAtom} from "jotai";
-import {selectedRoomAtom, birthdaysAtom} from "../store/store.ts";
+import {useAtom, useSetAtom, useAtomValue} from "jotai";
 import { useTranslation } from 'react-i18next';
 import {useSseSubscription} from "../hooks/useSseSubscription";
 import {logInfo} from "../otel.ts";
 import {fetchBirthdays} from "../api/birthday.ts";
-
-const MOCK_NOTICES = [
-    { type: 'NOTICE', title: '2024년 연봉 협상 안내', link: '#' },
-    { type: 'NOTICE', title: '신규 사내 복지 제도 시행', link: '#' },
-];
+import {fetchBoardPosts} from "../api/board.ts";
+import {selectedRoomAtom, birthdaysAtom, boardPostsAtom, isActionInProgressAtom} from "../store/store.ts";
 
 function LoadingNotice() {
     const { t } = useTranslation();
     const [index, setIndex] = useState(-1); // -1 means showing "Generating..."
     const [birthdays] = useAtom(birthdaysAtom);
+    const [boardPosts] = useAtom(boardPostsAtom);
     const [combinedNotices, setCombinedNotices] = useState<any[]>([]);
 
     useEffect(() => {
         // 공지와 생일자 데이터를 섞음
         const birthdayNotices = birthdays.map(b => ({
             type: 'BIRTHDAY',
-            name: `${b.name} ${b.position}`
+            name: `${b.name} ${b.position}`,
+            day: b.day
+        }));
+
+        const boardNotices = Object.values(boardPosts).flat().map(post => ({
+            type: 'NOTICE',
+            title: post.title,
+            link: post.url
         }));
 
         // 랜덤 셔플 함수
@@ -41,9 +45,9 @@ function LoadingNotice() {
             return newArray;
         };
 
-        const combined = shuffle([...MOCK_NOTICES, ...birthdayNotices]);
+        const combined = shuffle([...boardNotices, ...birthdayNotices]);
         setCombinedNotices(combined);
-    }, [birthdays]);
+    }, [birthdays, boardPosts]);
 
     useEffect(() => {
         if (combinedNotices.length === 0) return;
@@ -68,12 +72,68 @@ function LoadingNotice() {
                             </a>
                         ) : (
                             <div className="birthday-info">
-                                <span>{t('chat.birthday', { name: combinedNotices[index].name })}</span>
+                                <span>{t('chat.birthday', { name: combinedNotices[index].name, day: combinedNotices[index].day })}</span>
                                 <button className="congratulate-btn">{t('chat.congratulate')}</button>
                             </div>
                         )}
                     </div>
                 )}
+            </div>
+        </div>
+    );
+}
+
+function TopNoticeBar() {
+    const { t } = useTranslation();
+    const [birthdays] = useAtom(birthdaysAtom);
+    const [boardPosts] = useAtom(boardPostsAtom);
+    const [index, setIndex] = useState(0);
+    const [combinedNotices, setCombinedNotices] = useState<any[]>([]);
+
+    useEffect(() => {
+        const birthdayNotices = birthdays.map(b => ({
+            type: 'BIRTHDAY',
+            name: `${b.name} ${b.position}`,
+            day: b.day
+        }));
+
+        const boardNotices = Object.values(boardPosts).flat().map(post => ({
+            type: 'NOTICE',
+            title: post.title,
+            link: post.url
+        }));
+
+        setCombinedNotices([...boardNotices, ...birthdayNotices]);
+    }, [birthdays, boardPosts]);
+
+    useEffect(() => {
+        if (combinedNotices.length <= 1) return;
+        const interval = setInterval(() => {
+            setIndex((prev) => (prev + 1) % combinedNotices.length);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [combinedNotices.length]);
+
+    if (combinedNotices.length === 0) return null;
+
+    const current = combinedNotices[index];
+
+    return (
+        <div className="top-notice-bar">
+            <span className="notice-badge">{current.type === 'NOTICE' ? t('chat.noticeBadge', { defaultValue: '공지' }) : t('chat.birthdayBadge', { defaultValue: '생일' })}</span>
+            <div className="notice-content-wrapper">
+                <div key={index} className="notice-text-item fadeIn">
+                    {current.type === 'NOTICE' ? (
+                        <a href={current.link} target="_blank" rel="noopener noreferrer" className="top-notice-link">
+                            {current.title}
+                        </a>
+                    ) : (
+                        <span>{t('chat.birthdayMessage', { name: current.name, day: current.day, defaultValue: `${current.day}은 ${current.name}님의 생일입니다! 🎉` })}</span>
+                    )}
+                </div>
+            </div>
+            <div className="notice-pagination">
+                {index + 1} / {combinedNotices.length}
             </div>
         </div>
     );
@@ -121,17 +181,25 @@ export default function Chat() {
 
     const setBirthdays = useSetAtom(birthdaysAtom);
     const [birthdays] = useAtom(birthdaysAtom);
+    const setBoardPosts = useSetAtom(boardPostsAtom);
+    const [boardPosts] = useAtom(boardPostsAtom);
+    const isActionInProgress = useAtomValue(isActionInProgressAtom);
 
-    // 💡 초기 생일자 데이터 로드
+    // 💡 초기 데이터 로드 (생일자, 게시판 포스트)
     useEffect(() => {
         if (birthdays.length === 0) {
             fetchBirthdays().then(setBirthdays).catch(err => {
                 logInfo('Failed to fetch birthdays', err);
             });
         }
-    }, [birthdays.length, setBirthdays]);
+        if (Object.keys(boardPosts).length === 0) {
+            fetchBoardPosts().then(setBoardPosts).catch(err => {
+                logInfo('Failed to fetch board posts', err);
+            });
+        }
+    }, [birthdays.length, boardPosts, setBirthdays, setBoardPosts]);
 
-    // SSE 구독 활성화 (메시지 업데이트, 에러 처리, 제목 업데이트, 액션 업데이트, 생일자 업데이트)
+    // SSE 구독 활성화 (메시지 업데이트, 에러 처리, 제목 업데이트, 액션 업데이트, 생일자 업데이트, 게시판 업데이트)
     useSseSubscription(
         updateMessageById, 
         addErrorMessage,
@@ -153,6 +221,10 @@ export default function Chat() {
         (updatedBirthdays) => {
             logInfo('SSE: Received birthday update', updatedBirthdays);
             setBirthdays(updatedBirthdays);
+        },
+        (updatedBoardPosts) => {
+            logInfo('SSE: Received board update', updatedBoardPosts);
+            setBoardPosts(updatedBoardPosts);
         }
     );
 
@@ -276,45 +348,47 @@ export default function Chat() {
 
             <div className="container">
             <header>
-                <button className="mobile-sidebar-toggle" onClick={handleSidebarToggle}>
-                    ☰
-                </button>
-
-                <div className="logo">
-                    <span className="user-name">🤖 {formatUserName(user?.username)}</span>
-                    <span className="service-suffix">{t('chat.userSuffix')}</span>
-                </div>
-
-                <button className="mobile-action-toggle" onClick={handleActionPanelToggle}>
-                    ⚡
-                </button>
-
-                {/*<div className="mode-selector">
-                    <select value={mode} onChange={(e) => setMode(e.target.value as ChatMode)} disabled={isLoading}>
-                        <option value="GENERAL">{t('chat.modeGeneral')}</option>
-                        <option value="KNOWLEDGE">{t('chat.modeKnowledge')}</option>
-                    </select>
-                </div>*/}
-
-                <div className="language-selector" style={{ display: 'flex', gap: '5px' }}>
-                    <select value={i18n.resolvedLanguage} onChange={(e) => changeLanguage(e.target.value)} style={{ padding: '2px 5px', fontSize: '0.8rem', borderRadius: '5px' }}>
-                        <option value="ko">KO</option>
-                        <option value="en">EN</option>
-                        <option value="ja">JA</option>
-                        <option value="vi">VI</option>
-                    </select>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <button 
-                        onClick={() => logoutMutation.mutate()} 
-                        disabled={logoutMutation.isPending}
-                        style={{ padding: '5px 10px', fontSize: '0.8rem', borderRadius: '8px', height: 'auto', width: 'auto' }}
-                    >
-                        {logoutMutation.isPending ? t('chat.loggingOut') : t('chat.logout')}
+                <div className="header-left">
+                    <button className="mobile-sidebar-toggle" onClick={handleSidebarToggle}>
+                        ☰
                     </button>
+                    <div className="logo">
+                        <span className="user-name">🤖 {formatUserName(user?.username)}</span>
+                        <span className="service-suffix">{t('chat.userSuffix')}</span>
+                    </div>
+                </div>
+
+                <div className="header-center">
+                    <img src="/logo.png" alt="logo" className="header-logo" />
+                </div>
+
+                <div className="header-right">
+                    <button className="mobile-action-toggle" onClick={handleActionPanelToggle}>
+                        ⚡
+                    </button>
+
+                    <div className="language-selector" style={{ display: 'flex', gap: '5px' }}>
+                        <select value={i18n.resolvedLanguage} onChange={(e) => changeLanguage(e.target.value)} style={{ padding: '2px 5px', fontSize: '0.8rem', borderRadius: '5px' }}>
+                            <option value="ko">KO</option>
+                            <option value="en">EN</option>
+                            <option value="ja">JA</option>
+                            <option value="vi">VI</option>
+                        </select>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        <button 
+                            onClick={() => logoutMutation.mutate()} 
+                            disabled={logoutMutation.isPending}
+                            style={{ padding: '5px 10px', fontSize: '0.8rem', borderRadius: '8px', height: 'auto', width: 'auto' }}
+                        >
+                            {logoutMutation.isPending ? t('chat.loggingOut') : t('chat.logout')}
+                        </button>
+                    </div>
                 </div>
             </header>
+
+            <TopNoticeBar />
 
             <main className="chat-window" ref={scrollRef} onScroll={handleScroll}>
                 {messages.length === 0 && !isLoading && (
@@ -340,7 +414,17 @@ export default function Chat() {
                 {messages
                     .filter(msg => !(msg.role === 'ASSISTANT' && msg.content === ''))
                     .map((msg, idx) => (
-                        <MessageBubble key={idx} msg={msg} mode={mode} />
+                        <MessageBubble 
+                            key={idx} 
+                            msg={msg} 
+                            mode={mode} 
+                            isActionInProgress={
+                                isActionInProgress && 
+                                !isLoading && 
+                                msg.role === 'ASSISTANT' && 
+                                idx === messages.length - 1
+                            }
+                        />
                     ))}
 
                 {isLoading && (messages.length === 0 || messages[messages.length - 1]?.content === '') && (
@@ -404,7 +488,8 @@ export default function Chat() {
 
             <ActionPanel 
                 isCollapsed={actionPanelCollapsed} 
-                onToggle={handleActionPanelToggle} 
+                onToggle={handleActionPanelToggle}
+                onSidebarOpen={() => setSidebarCollapsed(false)}
                 isLoading={isLoading} 
                 intentId={lastIntentId}
             />

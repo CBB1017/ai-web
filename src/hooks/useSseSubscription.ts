@@ -9,7 +9,8 @@ export function useSseSubscription(
     onErrorMessage: (error: string) => void,
     onTitleUpdate: (roomId: string, title: string) => void,
     onActionUpdate: (action: any) => void,
-    onBirthdayUpdate?: (birthdays: BirthdayResponse[]) => void
+    onBirthdayUpdate?: (birthdays: BirthdayResponse[]) => void,
+    onBoardUpdate?: (boardPosts: any) => void
 ) {
     const { isAuthenticated } = useAuth();
     const setIsActionInProgress = useSetAtom(isActionInProgressAtom);
@@ -20,6 +21,7 @@ export function useSseSubscription(
     const onTitleUpdateRef = useRef(onTitleUpdate);
     const onActionUpdateRef = useRef(onActionUpdate);
     const onBirthdayUpdateRef = useRef(onBirthdayUpdate);
+    const onBoardUpdateRef = useRef(onBoardUpdate);
 
     // 렌더링될 때마다 Ref 업데이트 (최신 참조 유지)
     useEffect(() => {
@@ -28,6 +30,7 @@ export function useSseSubscription(
         onTitleUpdateRef.current = onTitleUpdate;
         onActionUpdateRef.current = onActionUpdate;
         onBirthdayUpdateRef.current = onBirthdayUpdate;
+        onBoardUpdateRef.current = onBoardUpdate;
     });
 
     useEffect(() => {
@@ -50,6 +53,7 @@ export function useSseSubscription(
             eventSource.addEventListener('chat-title-update', handleTitleUpdate);
             eventSource.addEventListener('action-list-update', handleActionUpdate);
             eventSource.addEventListener('birthday-update', handleBirthdayUpdate);
+            eventSource.addEventListener('board-update', handleBoardUpdate);
             eventSource.addEventListener('error', handleErrorEvent);
 
             eventSource.onopen = () => {
@@ -130,6 +134,18 @@ export function useSseSubscription(
             }
         };
 
+        const handleBoardUpdate = (event: MessageEvent) => {
+            if (!event.data || event.data === 'undefined') return;
+            try {
+                const data = JSON.parse(event.data);
+                if (onBoardUpdateRef.current) {
+                    onBoardUpdateRef.current(data);
+                }
+            } catch (e) {
+                logError('SSE: Board update parsing error', e);
+            }
+        };
+
         const handleErrorEvent = (event: MessageEvent) => {
             if (!event.data || event.data === 'undefined') {
                 logError('SSE: Received empty or undefined data in error event');
@@ -158,6 +174,7 @@ export function useSseSubscription(
                 eventSource.removeEventListener('chat-title-update', handleTitleUpdate);
                 eventSource.removeEventListener('action-list-update', handleActionUpdate);
                 eventSource.removeEventListener('birthday-update', handleBirthdayUpdate);
+                eventSource.removeEventListener('board-update', handleBoardUpdate);
                 eventSource.removeEventListener('error', handleErrorEvent);
                 eventSource.close();
             }
