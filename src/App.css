@@ -165,6 +165,7 @@ body {
   flex: 1; display: flex; flex-direction: column; height: 100%;
   margin-left: var(--collapsed-w); margin-right: var(--collapsed-w);
   background: var(--bg-main); transition: margin 0.3s ease;
+  overflow-x: hidden;
 }
 
 @media (min-width: 1025px) {
@@ -198,13 +199,163 @@ header {
 }
 
 .header-logo {
-  height: 32px;
+  height: 40px;
   width: auto;
   object-fit: contain;
+  transition: height 0.3s ease;
+}
+
+/* 📱 모바일 대응 */
+@media (max-width: 768px) {
+  header {
+    padding: 0 0.5rem;
+    gap: 5px;
+  }
+
+.header-left {
+    gap: 5px;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .header-center {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .header-right {
+    gap: 5px;
+    flex: 1 1 0;
+    justify-content: flex-end;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .logo .user-name, .logo .service-suffix, .pc-logout-btn {
+    display: none !important;
+  }
+
+  .profile-container {
+    display: flex !important;
+  }
+
+  .header-logo {
+    height: 28px;
+    max-width: 100%; /* 추가: 로고 이미지가 영역을 초과하지 않도록 제한 */
+    object-fit: contain;
+  }
+
+  .language-selector select {
+    padding: 2px;
+    font-size: 0.7rem;
+    max-width: 45px;
+  }
 }
 
 .logo { display: flex; align-items: center; gap: 8px; font-weight: 800; }
 .service-suffix { color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; }
+
+.pc-logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* 👤 프로필 드롭다운 */
+.profile-container {
+    position: relative;
+    display: none; /* PC에서는 숨김 (기존 logo에 노출되므로) */
+    flex-shrink: 0;
+}
+
+@media (min-width: 769px) {
+    /* PC에서도 필요하다면 노출할 수 있으나, 요청에 따라 PC는 기존 유지 */
+}
+
+.profile-icon-btn {
+    background: var(--bg-main);
+    border: 1px solid var(--border-light);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background 0.2s;
+    padding: 0;
+}
+
+.profile-icon-btn:hover {
+    background: var(--border-light);
+}
+
+.profile-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    min-width: 180px;
+    z-index: 1000;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.2s ease;
+}
+
+.profile-info-item {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.profile-info-item .user-name-dropdown {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.profile-info-item .service-suffix-dropdown {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.profile-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 4px 0;
+}
+
+.logout-dropdown-btn {
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--danger);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.logout-dropdown-btn:hover {
+    background: #fff1f2;
+}
+
+.logout-dropdown-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 
 /* 📢 상단 공지 바 */
 .top-notice-bar {
@@ -214,11 +365,16 @@ header {
     background: var(--surface);
     border: 1px solid var(--border-light);
     border-radius: 12px;
-    margin: 10px 10px 10px 10px;
-    padding: 0 16px; /* 위아래 패딩 제거하고 height와 flex로 정렬 */
+    margin: 10px;
+    padding: 0 16px;
     box-shadow: var(--shadow-sm);
     z-index: 10;
     height: 40px;
+    min-width: 0; 
+    flex-shrink: 0; 
+    overflow: hidden;
+    width: auto; /* width: 100% 대신 auto와 margin 조합 */
+    max-width: calc(100% - 20px); /* margin 고려한 최대 너비 제한 */
 }
 
 .notice-badge {
@@ -233,6 +389,7 @@ header {
     align-items: center;
     height: 22px;
     line-height: 1;
+    flex-shrink: 0; /* 배지 크기 고정 */
 }
 
 .notice-content-wrapper {
@@ -241,6 +398,7 @@ header {
     height: 100%;
     display: flex;
     align-items: center;
+    min-width: 0; /* 하위 요소의 ellipsis가 작동하도록 보장 */
 }
 
 .notice-text-item {
@@ -250,16 +408,20 @@ header {
     overflow: hidden;
     text-overflow: ellipsis;
     width: 100%;
-    display: flex;
-    align-items: center;
-    line-height: normal;
+    display: block; /* block으로 변경하여 텍스트 오버플로우 제어 */
+    line-height: 40px; /* height와 맞춰 중앙 정렬 */
+    min-width: 0;
 }
 
 .top-notice-link {
     color: var(--text-primary);
     text-decoration: none;
     font-weight: 600;
-    line-height: normal;
+    line-height: inherit;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .top-notice-link:hover {
@@ -275,6 +437,7 @@ header {
     align-items: center;
     height: 100%;
     line-height: 1;
+    flex-shrink: 0; /* 페이지네이션 크기 고정 */
 }
 
 @keyframes fadeIn {

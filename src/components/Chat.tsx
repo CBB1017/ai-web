@@ -160,6 +160,20 @@ export default function Chat() {
 
     const [selectedRoom, setSelectedRoom] = useAtom<ChatRoom>(selectedRoomAtom);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const profileRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+                setIsProfileOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const toggleProfile = () => setIsProfileOpen(!isProfileOpen);
     const [actionPanelCollapsed, setActionPanelCollapsed] = useState(true);
     const [isSidebarPinned, setIsSidebarPinned] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -376,7 +390,7 @@ export default function Chat() {
                         </select>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div className="pc-logout-btn">
                         <button 
                             onClick={() => logoutMutation.mutate()} 
                             disabled={logoutMutation.isPending}
@@ -384,6 +398,28 @@ export default function Chat() {
                         >
                             {logoutMutation.isPending ? t('chat.loggingOut') : t('chat.logout')}
                         </button>
+                    </div>
+
+                    <div className="profile-container" ref={profileRef}>
+                        <button className="profile-icon-btn" onClick={toggleProfile}>
+                            👤
+                        </button>
+                        {isProfileOpen && (
+                            <div className="profile-dropdown">
+                                <div className="profile-info-item">
+                                    <span className="user-name-dropdown">🤖 {formatUserName(user?.username)}</span>
+                                    <span className="service-suffix-dropdown">{t('chat.userSuffix')}</span>
+                                </div>
+                                <div className="profile-divider"></div>
+                                <button
+                                    className="logout-dropdown-btn"
+                                    onClick={() => logoutMutation.mutate()}
+                                    disabled={logoutMutation.isPending}
+                                >
+                                    {logoutMutation.isPending ? t('chat.loggingOut') : t('chat.logout')}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>
