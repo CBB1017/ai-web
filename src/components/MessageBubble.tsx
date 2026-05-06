@@ -11,6 +11,32 @@ export default function MessageBubble({ msg, mode, isActionInProgress }: Message
     const isUser = msg.role === 'USER';
     const { t } = useTranslation();
 
+    // 💡 URL을 하이퍼링크로 변환하는 함수
+    const renderContentWithLinks = (content: string) => {
+        if (!content) return null;
+
+        // URL 정규식
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const parts = content.split(urlRegex);
+
+        return parts.map((part, index) => {
+            if (part.match(urlRegex)) {
+                return (
+                    <a 
+                        key={index} 
+                        href={part} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="message-link"
+                    >
+                        {part}
+                    </a>
+                );
+            }
+            return part;
+        });
+    };
+
     return (
         <div className={`message-wrapper ${isUser ? 'user' : 'ai'}`}>
             {!isUser && (
@@ -20,7 +46,9 @@ export default function MessageBubble({ msg, mode, isActionInProgress }: Message
             )}
             <div className="message-content">
                 <div className={`bubble ${isUser ? 'user' : 'ai'}`}>
-                    {msg.content}
+                    <div className="bubble-text">
+                        {renderContentWithLinks(msg.content)}
+                    </div>
                     {!isUser && isActionInProgress && (
                         <div className="message-action-spinner">
                             <span className="dot"></span>
