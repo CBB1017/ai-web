@@ -26,7 +26,7 @@ function LoadingNotice() {
         const birthdayNotices = birthdays.map(b => ({
             type: 'BIRTHDAY',
             name: `${b.name} ${b.position}`,
-            day: b.day
+            day: parseInt(b.day, 10).toString()
         }));
 
         const boardNotices = Object.values(boardPosts).flat().map(post => ({
@@ -94,7 +94,7 @@ function TopNoticeBar() {
         const birthdayNotices = birthdays.map(b => ({
             type: 'BIRTHDAY',
             name: `${b.name} ${b.position}`,
-            day: b.day
+            day: parseInt(b.day, 10).toString()
         }));
 
         const boardNotices = Object.values(boardPosts).flat().map(post => ({
