@@ -50,6 +50,7 @@ const resources = {
                     mcp: "MCP 목록 확인하기",
                     vacation: "휴가 신청서 상신 (필요한 정보 안내)",
                     ot: "OT 신청서 상신 (필요한 정보 안내)",
+                    workPlan: "근무계획 수립 신청 (익월 기준)",
                     email: "이메일 목록 요약",
                     rule: "사내 규정 안내"
                 }
@@ -115,6 +116,7 @@ const resources = {
                     mcp: "Check MCP List",
                     vacation: "Submit vacation request (guide on required info)",
                     ot: "Submit OT request (guide on required info)",
+                    workPlan: "Request work plan creation (next month)",
                     email: "Email list summary",
                     rule: "Internal rules guide"
                 }
@@ -180,8 +182,9 @@ const resources = {
                     mcp: "MCPリストを確認する",
                     vacation: "休暇届の提出（必要情報の案内）",
                     ot: "残業申請の提出（必要情報の案内）",
+                    workPlan: "勤務計画の作成申請（翌月基準）",
                     email: "メールの要約",
-                    rule: "社内規定の案内"
+                    rule: "社내規定の案内"
                 }
             },
             action: {
@@ -245,6 +248,7 @@ const resources = {
                     mcp: "Kiểm tra danh sách MCP",
                     vacation: "Gửi đơn xin nghỉ phép (hướng dẫn thông tin cần thiết)",
                     ot: "Gửi đơn xin làm thêm giờ (hướng dẫn thông tin cần thiết)",
+                    workPlan: "Đăng ký lập kế hoạch làm việc (tháng tới)",
                     email: "Tóm tắt email",
                     rule: "Hướng dẫn quy định công ty"
                 }

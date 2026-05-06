@@ -192,8 +192,22 @@ export default function Chat() {
         handleStop,
         updateMessageById,
         lastIntentId,
+        setLastIntentId,
         addErrorMessage
     } = useChatMessages();
+
+    // 실제 MCP 인텐트 목록
+    const mcpIntents = ['OVERTIME_ONEDAY', 'OVERTIME_MONTHLY', 'VACATION', 'WORK_PLAN'];
+
+    // 응답이 완료되면 MCP 모드 초기화
+    useEffect(() => {
+        if (!isLoading && lastIntentId && mcpIntents.includes(lastIntentId)) {
+            const timer = setTimeout(() => {
+                setLastIntentId(undefined);
+            }, 3000); // 3초 정도 표시 후 초기화
+            return () => clearTimeout(timer);
+        }
+    }, [isLoading, lastIntentId, setLastIntentId]);
 
     const queryClient = useQueryClient();
 
@@ -328,6 +342,7 @@ export default function Chat() {
         { key: 'mcp', text: t('chat.suggestions.mcp') },
         { key: 'vacation', text: t('chat.suggestions.vacation') },
         { key: 'ot', text: t('chat.suggestions.ot') },
+        { key: 'workPlan', text: t('chat.suggestions.workPlan') },
         { key: 'email', text: t('chat.suggestions.email') },
         { key: 'rule', text: t('chat.suggestions.rule') }
     ];

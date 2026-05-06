@@ -168,8 +168,9 @@ export default function ActionPanel({ isCollapsed, onToggle, onSidebarOpen, isLo
                                 </div>
                             )}
 
-                            {/* MCP 모드일 때만 롤백 버튼 표시 */}
-                            {action.status === 'SUCCESS' && intentId === 'MCP' && (
+                            {/* MCP 도구(연장근무, 휴가, 근무계획)일 때만 롤백 버튼 표시 */}
+                            {action.status === 'SUCCESS' && 
+                             ['OVERTIME_ONEDAY', 'OVERTIME_MONTHLY', 'VACATION', 'WORK_PLAN'].includes(intentId || '') && (
                                 <button
                                     className="rollback-btn"
                                     onClick={() => handleRollback(action.id)}

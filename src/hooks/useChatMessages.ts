@@ -178,6 +178,7 @@ export function useChatMessages() {
         isLoading,
         handleSubmit,
         handleStop,
-        lastIntentId
+        lastIntentId,
+        setLastIntentId
     };
 }
