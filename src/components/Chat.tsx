@@ -116,6 +116,14 @@ function TopNoticeBar() {
 
     if (combinedNotices.length === 0) return null;
 
+    const handlePrev = () => {
+        setIndex((prev) => (prev - 1 + combinedNotices.length) % combinedNotices.length);
+    };
+
+    const handleNext = () => {
+        setIndex((prev) => (prev + 1) % combinedNotices.length);
+    };
+
     const current = combinedNotices[index];
 
     return (
@@ -128,12 +136,16 @@ function TopNoticeBar() {
                             {current.title}
                         </a>
                     ) : (
-                        <span>{t('chat.birthdayMessage', { name: current.name, day: current.day, defaultValue: `${current.day}은 ${current.name}님의 생일입니다! 🎉` })}</span>
+                        <span>{t('chat.birthdayMessage', { name: current.name, day: current.day, defaultValue: `${current.day}일은 ${current.name}님의 생일입니다! 🎉` })}</span>
                     )}
                 </div>
             </div>
-            <div className="notice-pagination">
-                {index + 1} / {combinedNotices.length}
+            <div className="notice-nav">
+                <button onClick={handlePrev} className="nav-btn">{"<"}</button>
+                <div className="notice-pagination">
+                    {index + 1} / {combinedNotices.length}
+                </div>
+                <button onClick={handleNext} className="nav-btn">{">"}</button>
             </div>
         </div>
     );

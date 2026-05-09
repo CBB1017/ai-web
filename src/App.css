@@ -432,6 +432,33 @@ header {
     color: var(--accent);
 }
 
+.notice-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.nav-btn:hover {
+    background: var(--bg-main);
+    color: var(--accent);
+}
+
 .notice-pagination {
     font-size: 0.7rem;
     color: var(--text-muted);
@@ -440,7 +467,8 @@ header {
     align-items: center;
     height: 100%;
     line-height: 1;
-    flex-shrink: 0; /* 페이지네이션 크기 고정 */
+    min-width: 35px;
+    justify-content: center;
 }
 
 @keyframes fadeIn {
