@@ -357,6 +357,7 @@ export default function Chat() {
         { key: 'vacation', text: t('chat.suggestions.vacation') },
         { key: 'ot', text: t('chat.suggestions.ot') },
         { key: 'workPlan', text: t('chat.suggestions.workPlan') },
+        { key: 'roomReservation', text: t('chat.suggestions.roomReservation') },
         { key: 'email', text: t('chat.suggestions.email') },
         { key: 'rule', text: t('chat.suggestions.rule') }
     ];

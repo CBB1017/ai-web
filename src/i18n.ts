@@ -47,10 +47,11 @@ const resources = {
                 me: "나",
                 highDemandError: "현재 AI 모델 사용량이 많아 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.",
                 suggestions: {
-                    mcp: "MCP 목록 확인하기",
+                    mcp: "도구 목록 확인하기",
                     vacation: "휴가 신청서 상신 (필요한 정보 안내)",
                     ot: "OT 신청서 상신 (필요한 정보 안내)",
                     workPlan: "근무계획 수립 신청 (익월 기준)",
+                    roomReservation: "회의실(공유물) 예약/조회",
                     email: "이메일 목록 요약",
                     rule: "사내 규정 안내"
                 }
@@ -113,10 +114,11 @@ const resources = {
                 me: "Me",
                 highDemandError: "The AI model is currently experiencing high demand. Please try again in a moment.",
                 suggestions: {
-                    mcp: "Check MCP List",
+                    mcp: "Check Tool List",
                     vacation: "Submit vacation request (guide on required info)",
                     ot: "Submit OT request (guide on required info)",
                     workPlan: "Request work plan creation (next month)",
+                    roomReservation: "Meeting room (shared resources) reservation/inquiry",
                     email: "Email list summary",
                     rule: "Internal rules guide"
                 }
@@ -179,10 +181,11 @@ const resources = {
                 me: "自分",
                 highDemandError: "現在、AIモデルの利用が集中しています。しばらくしてからもう一度お試しください。",
                 suggestions: {
-                    mcp: "MCPリストを確認する",
+                    mcp: "ツールリストを確認する",
                     vacation: "休暇届の提出（必要情報の案内）",
                     ot: "残業申請の提出（必要情報の案内）",
                     workPlan: "勤務計画の作成申請（翌月基準）",
+                    roomReservation: "会議室（共有物）予約・照会",
                     email: "メールの要約",
                     rule: "社내規定の案内"
                 }
@@ -245,10 +248,11 @@ const resources = {
                 me: "Tôi",
                 highDemandError: "Mô hình AI hiện đang có lượng truy cập cao. Vui lòng thử lại sau giây lát.",
                 suggestions: {
-                    mcp: "Kiểm tra danh sách MCP",
+                    mcp: "Kiểm tra danh sách công cụ",
                     vacation: "Gửi đơn xin nghỉ phép (hướng dẫn thông tin cần thiết)",
                     ot: "Gửi đơn xin làm thêm giờ (hướng dẫn thông tin cần thiết)",
                     workPlan: "Đăng ký lập kế hoạch làm việc (tháng tới)",
+                    roomReservation: "Đặt chỗ/Tra cứu phòng họp (tài sản chung)",
                     email: "Tóm tắt email",
                     rule: "Hướng dẫn quy định công ty"
                 }
