@@ -62,7 +62,7 @@ function LoadingNotice() {
         <div className="loading-notice-container">
             <div className="loader"></div>
             <div className="loading-text-wrapper">
-                {index === -1 || combinedNotices.length === 0 ? (
+                {index === -1 || !combinedNotices[index] ? (
                     <span className="loading-text fadeIn">{t('chat.generating')}</span>
                 ) : (
                     <div key={index} className="loading-text fadeIn">
@@ -125,6 +125,8 @@ function TopNoticeBar() {
     };
 
     const current = combinedNotices[index];
+
+    if (!current) return null;
 
     return (
         <div className="top-notice-bar">
@@ -525,7 +527,6 @@ export default function Chat() {
                             }
                         }}
                         placeholder={selectedRoom?.roomId ? t('chat.inputPlaceholder') : t('chat.newChatPlaceholder')}
-                        disabled={isLoading}
                     />
                     {modeInfo && (
                         <div className="input-mode-badge">

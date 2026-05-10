@@ -18,7 +18,11 @@ export default defineConfig({
     allowedHosts: ['leia-overlearned-deprecatingly.ngrok-free.dev'],
     strictPort: true, // true면 겹칠 때 에러, false면 자동 전환
     proxy: {
-      '/api': 'http://localhost:8080', // Spring Boot 연결 설정
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api'), // 유지 (기본값)
+      },
     },
   },
 });
