@@ -21,3 +21,11 @@ export const selectedRoomAtom = atom<ChatRoom>({ roomId: '', title: '새로운 �
 export const isActionInProgressAtom = atom<boolean>(false);
 export const birthdaysAtom = atomWithStorage<BirthdayResponse[]>('birthdays', []);
 export const boardPostsAtom = atomWithStorage<Record<string, BoardPostResponse[]>>('boardPosts', {});
+
+export interface Toast {
+    id: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
+}
+
+export const toastsAtom = atom<Toast[]>([]);
