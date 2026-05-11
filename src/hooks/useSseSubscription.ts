@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSetAtom } from 'jotai';
 import { isActionInProgressAtom, type BirthdayResponse } from '../store/store';
 import { logInfo, logError } from '../otel';
+import { useTranslation } from 'react-i18next';
 
 export function useSseSubscription(
     onMessageUpdate: (messageId: string, content: string) => void,
@@ -14,6 +15,7 @@ export function useSseSubscription(
 ) {
     const { isAuthenticated } = useAuth();
     const setIsActionInProgress = useSetAtom(isActionInProgressAtom);
+    const { t } = useTranslation();
     
     // 콜백 함수들을 Ref에 저장하여 의존성에서 제거
     const onMessageUpdateRef = useRef(onMessageUpdate);
@@ -22,6 +24,17 @@ export function useSseSubscription(
     const onActionUpdateRef = useRef(onActionUpdate);
     const onBirthdayUpdateRef = useRef(onBirthdayUpdate);
     const onBoardUpdateRef = useRef(onBoardUpdate);
+
+    // 알림 권한 요청
+    useEffect(() => {
+        if (isAuthenticated && "Notification" in window) {
+            if (Notification.permission === "default") {
+                Notification.requestPermission().then(permission => {
+                    logInfo(`Notification permission: ${permission}`);
+                });
+            }
+        }
+    }, [isAuthenticated]);
 
     // 렌더링될 때마다 Ref 업데이트 (최신 참조 유지)
     useEffect(() => {
@@ -40,6 +53,15 @@ export function useSseSubscription(
         let retryCount = 0;
         const maxRetries = 10;
         let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+
+        const showBrowserNotification = (title: string, body: string) => {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: '/logo.png'
+                });
+            }
+        };
 
         const connect = () => {
             if (eventSource) {
@@ -94,6 +116,12 @@ export function useSseSubscription(
                 if (data.messageId && data.content) {
                     onMessageUpdateRef.current(data.messageId, data.content);
                     setIsActionInProgress(false);
+
+                    // 브라우저 알림 전송
+                    showBrowserNotification(
+                        t('chat.notifications.emailSummaryTitle'),
+                        t('chat.notifications.emailSummaryBody')
+                    );
                 }
             } catch (e) {
                 logError('SSE: Data parsing error', e, { rawData: event.data });
@@ -157,6 +185,12 @@ export function useSseSubscription(
                 const data = JSON.parse(event.data);
                 onErrorMessageRef.current(data.message || '오류가 발생했습니다.');
                 setIsActionInProgress(false);
+
+                // 오류 발생 시 브라우저 알림 전송 (선택 사항)
+                showBrowserNotification(
+                    t('chat.notifications.errorTitle'),
+                    data.message || '오류가 발생했습니다.'
+                );
             } catch (e) {
                 logError('SSE: Error data parsing error', e, { rawData: event.data });
                 onErrorMessageRef.current('서버 응답 처리 중 오류가 발생했습니다.');
@@ -179,5 +213,6 @@ export function useSseSubscription(
                 eventSource.close();
             }
         };
-    }, [isAuthenticated, setIsActionInProgress]);
+    }, [isAuthenticated, setIsActionInProgress, t]);
 }
+
