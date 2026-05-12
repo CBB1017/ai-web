@@ -225,6 +225,23 @@ export default function Chat() {
 
     const queryClient = useQueryClient();
 
+    // 💡 탭이 다시 활성화될 때 데이터를 최신화 (SSE 유실 대비)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                logInfo('Tab became visible, syncing data...');
+                // 사이드바 목록 갱신
+                queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+                // 현재 선택된 방의 메시지 목록 갱신
+                if (selectedRoom?.roomId) {
+                    queryClient.invalidateQueries({ queryKey: ['chatMessages', selectedRoom.roomId] });
+                }
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [queryClient, selectedRoom?.roomId]);
+
     const setBirthdays = useSetAtom(birthdaysAtom);
     const [birthdays] = useAtom(birthdaysAtom);
     const setBoardPosts = useSetAtom(boardPostsAtom);

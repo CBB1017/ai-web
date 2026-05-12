@@ -116,12 +116,7 @@ export function useSseSubscription(
                 if (data.messageId && data.content) {
                     onMessageUpdateRef.current(data.messageId, data.content);
                     setIsActionInProgress(false);
-
-                    // 브라우저 알림 전송
-                    showBrowserNotification(
-                        t('chat.notifications.emailSummaryTitle'),
-                        t('chat.notifications.emailSummaryBody')
-                    );
+                    showBrowserNotification(t('chat.notifications.emailSummaryTitle'), t('chat.notifications.emailSummaryBody'));
                 }
             } catch (e) {
                 logError('SSE: Data parsing error', e, { rawData: event.data });
@@ -132,9 +127,7 @@ export function useSseSubscription(
             if (!event.data || event.data === 'undefined') return;
             try {
                 const data = JSON.parse(event.data);
-                if (data.roomId && data.title) {
-                    onTitleUpdateRef.current(data.roomId, data.title);
-                }
+                if (data.roomId && data.title) onTitleUpdateRef.current(data.roomId, data.title);
             } catch (e) {
                 logError('SSE: Title update parsing error', e);
             }
@@ -154,9 +147,7 @@ export function useSseSubscription(
             if (!event.data || event.data === 'undefined') return;
             try {
                 const data = JSON.parse(event.data);
-                if (onBirthdayUpdateRef.current) {
-                    onBirthdayUpdateRef.current(data);
-                }
+                if (onBirthdayUpdateRef.current) onBirthdayUpdateRef.current(data);
             } catch (e) {
                 logError('SSE: Birthday update parsing error', e);
             }
@@ -166,9 +157,7 @@ export function useSseSubscription(
             if (!event.data || event.data === 'undefined') return;
             try {
                 const data = JSON.parse(event.data);
-                if (onBoardUpdateRef.current) {
-                    onBoardUpdateRef.current(data);
-                }
+                if (onBoardUpdateRef.current) onBoardUpdateRef.current(data);
             } catch (e) {
                 logError('SSE: Board update parsing error', e);
             }
@@ -177,8 +166,12 @@ export function useSseSubscription(
         const handleErrorEvent = (event: MessageEvent) => {
             if (!event.data || event.data === 'undefined') {
                 logError('SSE: Received empty or undefined data in error event');
-                onErrorMessageRef.current('알 수 없는 서버 오류가 발생했습니다.');
-                setIsActionInProgress(false);
+                // 백그라운드에서 단순 연결 끊김으로 인한 에러는 무시하고, 
+                // 포그라운드 상태에서 발생한 경우에만 사용자에게 알림
+                if (document.visibilityState === 'visible') {
+                    onErrorMessageRef.current('알 수 없는 서버 오류가 발생했습니다.');
+                    setIsActionInProgress(false);
+                }
                 return;
             }
             try {
@@ -186,7 +179,6 @@ export function useSseSubscription(
                 onErrorMessageRef.current(data.message || '오류가 발생했습니다.');
                 setIsActionInProgress(false);
 
-                // 오류 발생 시 브라우저 알림 전송 (선택 사항)
                 showBrowserNotification(
                     t('chat.notifications.errorTitle'),
                     data.message || '오류가 발생했습니다.'
@@ -215,4 +207,3 @@ export function useSseSubscription(
         };
     }, [isAuthenticated, setIsActionInProgress, t]);
 }
-
