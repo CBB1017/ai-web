@@ -6,7 +6,7 @@ import Sidebar from './Sidebar';
 import ActionPanel from './ActionPanel';
 import {useAuth} from "../context/AuthContext.tsx";
 import type {ChatMode, ChatRoom} from "../constants/constant.ts";
-import {useAtom, useSetAtom, useAtomValue} from "jotai";
+import {useAtom, useSetAtom} from "jotai";
 import { useTranslation } from 'react-i18next';
 import {useSseSubscription} from "../hooks/useSseSubscription";
 import {logInfo} from "../otel.ts";
@@ -226,16 +226,23 @@ export default function Chat() {
     const queryClient = useQueryClient();
 
     // 💡 탭이 다시 활성화될 때 데이터를 최신화 (SSE 유실 대비)
+    const syncData = async () => {
+        logInfo('Syncing data...');
+        try {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['chatRooms'] }),
+                selectedRoom?.roomId ? queryClient.invalidateQueries({ queryKey: ['chatMessages', selectedRoom.roomId] }) : Promise.resolve()
+            ]);
+        } finally {
+            // 💡 데이터 로드가 끝나면(성공/실패 무관) 비동기 액션 로딩 상태 해제
+            setIsActionInProgress(false);
+        }
+    };
+
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                logInfo('Tab became visible, syncing data...');
-                // 사이드바 목록 갱신
-                queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-                // 현재 선택된 방의 메시지 목록 갱신
-                if (selectedRoom?.roomId) {
-                    queryClient.invalidateQueries({ queryKey: ['chatMessages', selectedRoom.roomId] });
-                }
+                syncData();
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -246,7 +253,7 @@ export default function Chat() {
     const [birthdays] = useAtom(birthdaysAtom);
     const setBoardPosts = useSetAtom(boardPostsAtom);
     const [boardPosts] = useAtom(boardPostsAtom);
-    const isActionInProgress = useAtomValue(isActionInProgressAtom);
+    const [isActionInProgress, setIsActionInProgress] = useAtom(isActionInProgressAtom);
 
     // 💡 초기 데이터 로드 (생일자, 게시판 포스트)
     useEffect(() => {
@@ -477,7 +484,11 @@ export default function Chat() {
 
             <TopNoticeBar />
 
-            <main className="chat-window" ref={scrollRef} onScroll={handleScroll}>
+            <main 
+                className="chat-window" 
+                ref={scrollRef} 
+                onScroll={handleScroll}
+            >
                 {messages.length === 0 && !isLoading && (
                     <div className="welcome-container">
                         <div className="welcome-message">

@@ -107,6 +107,7 @@ export function useSseSubscription(
         };
 
         const handleEmailSummary = (event: MessageEvent) => {
+            setIsActionInProgress(false);
             if (!event.data || event.data === 'undefined') {
                 logError('SSE: Received empty or undefined data in email-summary-complete');
                 return;
@@ -115,7 +116,6 @@ export function useSseSubscription(
                 const data = JSON.parse(event.data);
                 if (data.messageId && data.content) {
                     onMessageUpdateRef.current(data.messageId, data.content);
-                    setIsActionInProgress(false);
                     showBrowserNotification(t('chat.notifications.emailSummaryTitle'), t('chat.notifications.emailSummaryBody'));
                 }
             } catch (e) {

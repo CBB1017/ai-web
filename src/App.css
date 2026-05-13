@@ -549,11 +549,17 @@ header {
 
 /* ⌨️ 입력 영역 */
 .input-area {
-  padding: 0.75rem 1rem; 
-  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  padding: 0.75rem 1rem;
   border-top: 1px solid var(--border-light);
   display: flex; gap: 8px; align-items: center;
   max-width: 900px; width: 100%; margin: 0 auto;
+}
+
+/* 📱 아이폰 하단 홈 바 여백은 키보드가 없을 때만 필요하므로 별도 처리하거나 컨테이너에 위임 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .chat-layout:not(:focus-within) .input-area {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
 }
 .input-area textarea {
   flex: 1; padding: 0.75rem 1rem; border: 1px solid var(--border-light);

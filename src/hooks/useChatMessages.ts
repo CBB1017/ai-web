@@ -11,12 +11,13 @@ import { logInfo, logError } from "../otel.ts";
 export function useChatMessages() {
     const [selectedRoom, setSelectedRoom] = useAtom(selectedRoomAtom);
     const setIsActionInProgress = useSetAtom(isActionInProgressAtom);
-    const { i18n } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
     const [lastIntentId, setLastIntentId] = useState<string | undefined>(undefined);
+    const prevRoomIdRef = useRef<string | undefined>(selectedRoom?.roomId);
 
     // SSE 데이터로 메시지 교체
     const updateMessageById = (messageId: string, newContent: string) => {
@@ -40,10 +41,17 @@ export function useChatMessages() {
     };
 
     const addErrorMessage = (errorMessage: string) => {
-        setMessages(prev => [
-            ...prev,
-            { role: 'ASSISTANT', content: `⚠️ ${errorMessage}` }
-        ]);
+        setMessages(prev => {
+            // 마지막 메시지가 동일한 에러 메시지인 경우 중복 추가 방지
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg?.role === 'ASSISTANT' && lastMsg.content === `⚠️ ${errorMessage}`) {
+                return prev;
+            }
+            return [
+                ...prev,
+                { role: 'ASSISTANT', content: `⚠️ ${errorMessage}` }
+            ];
+        });
     };
 
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -63,11 +71,19 @@ export function useChatMessages() {
 
     useEffect(() => {
         if (isStreaming) return;
+
+        // 방이 바뀌지 않았고, 현재 에러 메시지가 표시 중이면 히스토리로 덮어쓰지 않음
+        const hasError = messages.length > 0 && messages[messages.length - 1].content.includes('⚠️');
+        if (selectedRoom?.roomId === prevRoomIdRef.current && hasError) {
+            return;
+        }
+
         if (historyData) {
             setMessages(historyData);
         } else {
             setMessages([]);
         }
+        prevRoomIdRef.current = selectedRoom?.roomId;
     }, [selectedRoom?.roomId, historyData, isStreaming]);
 
     const handleStop = () => {
@@ -151,8 +167,13 @@ export function useChatMessages() {
         } catch (error: any) {
             if (error.name !== 'AbortError') {
                 logError("AI Stream high-level error", error, { roomId: currentRoomId });
-                setIsActionInProgress(false);
-                let errorMessage = `⚠️ 오류가 발생했습니다.\n\n[상세 내용]\n${error.message || '알 수 없는 서버 오류'}`;
+                let displayMessage = error.message;
+                if (error.status === 502 || error.status === 503 || error.status === 504 || 
+                    error.message === 'BACKEND_UNAVAILABLE' || error.message === 'GATEWAY_TIMEOUT') {
+                    displayMessage = t('chat.highDemandError');
+                }
+
+                let errorMessage = `⚠️ 오류가 발생했습니다.\n\n[상세 내용]\n${displayMessage || '알 수 없는 서버 오류'}`;
                 setMessages(prev => {
                     const lastMsg = prev[prev.length - 1];
                     if (lastMsg?.role === 'ASSISTANT') {
@@ -164,6 +185,7 @@ export function useChatMessages() {
         } finally {
             setIsStreaming(false);
             abortControllerRef.current = null;
+            setIsActionInProgress(false);
             // queryClient.invalidateQueries({queryKey: ['chatRooms']}); // SSE에서 처리하므로 제거
         }
     };
