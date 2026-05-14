@@ -9,7 +9,7 @@ import type {ChatMode, ChatRoom} from "../constants/constant.ts";
 import {useAtom, useSetAtom} from "jotai";
 import { useTranslation } from 'react-i18next';
 import {useSseSubscription} from "../hooks/useSseSubscription";
-import {logInfo} from "../otel.ts";
+import {logError, logInfo} from "../otel.ts";
 import {fetchBirthdays} from "../api/birthday.ts";
 import {fetchBoardPosts} from "../api/board.ts";
 import {selectedRoomAtom, birthdaysAtom, boardPostsAtom, isActionInProgressAtom} from "../store/store.ts";
@@ -225,14 +225,50 @@ export default function Chat() {
 
     const queryClient = useQueryClient();
 
+    // SSE 구독 활성화 (메시지 업데이트, 에러 처리, 제목 업데이트, 액션 업데이트, 생일자 업데이트, 게시판 업데이트)
+    const { reconnect: reconnectSse } = useSseSubscription(
+        updateMessageById, 
+        addErrorMessage,
+        (roomId, title) => {
+            logInfo('SSE: Received title update', { roomId, title });
+            // 💡 사이드바 목록 갱신
+            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+            
+            // 💡 현재 보고 있는 방이라면 제목 업데이트
+            if (selectedRoom?.roomId === roomId) {
+                setSelectedRoom(prev => prev ? { ...prev, title } : prev);
+            }
+        },
+        (action) => {
+            logInfo('SSE: Received action update', action);
+            // 💡 액션 목록 갱신
+            queryClient.invalidateQueries({ queryKey: ['actions'] });
+        },
+        (updatedBirthdays) => {
+            logInfo('SSE: Received birthday update', updatedBirthdays);
+            setBirthdays(updatedBirthdays);
+        },
+        (updatedBoardPosts) => {
+            logInfo('SSE: Received board update', updatedBoardPosts);
+            setBoardPosts(updatedBoardPosts);
+        }
+    );
+
     // 💡 탭이 다시 활성화될 때 데이터를 최신화 (SSE 유실 대비)
     const syncData = async () => {
-        logInfo('Syncing data...');
+        logInfo('Syncing data and reconnecting SSE...');
         try {
+            // 1. SSE 재연결 (오류 발생 시 catch로 이동)
+            reconnectSse();
+
+            // 2. 데이터 동기화
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['chatRooms'] }),
                 selectedRoom?.roomId ? queryClient.invalidateQueries({ queryKey: ['chatMessages', selectedRoom.roomId] }) : Promise.resolve()
             ]);
+        } catch (err) {
+            logError('Foreground sync/reconnect failed', err);
+            addErrorMessage(t('chat.serverError', { defaultValue: '서버와 연결이 원활하지 않습니다. 페이지를 새로고침 해주세요.' }));
         } finally {
             // 💡 데이터 로드가 끝나면(성공/실패 무관) 비동기 액션 로딩 상태 해제
             setIsActionInProgress(false);
@@ -268,35 +304,6 @@ export default function Chat() {
             });
         }
     }, [birthdays.length, boardPosts, setBirthdays, setBoardPosts]);
-
-    // SSE 구독 활성화 (메시지 업데이트, 에러 처리, 제목 업데이트, 액션 업데이트, 생일자 업데이트, 게시판 업데이트)
-    useSseSubscription(
-        updateMessageById, 
-        addErrorMessage,
-        (roomId, title) => {
-            logInfo('SSE: Received title update', { roomId, title });
-            // 💡 사이드바 목록 갱신
-            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-            
-            // 💡 현재 보고 있는 방이라면 제목 업데이트
-            if (selectedRoom?.roomId === roomId) {
-                setSelectedRoom(prev => prev ? { ...prev, title } : prev);
-            }
-        },
-        (action) => {
-            logInfo('SSE: Received action update', action);
-            // 💡 액션 목록 갱신
-            queryClient.invalidateQueries({ queryKey: ['actions'] });
-        },
-        (updatedBirthdays) => {
-            logInfo('SSE: Received birthday update', updatedBirthdays);
-            setBirthdays(updatedBirthdays);
-        },
-        (updatedBoardPosts) => {
-            logInfo('SSE: Received board update', updatedBoardPosts);
-            setBoardPosts(updatedBoardPosts);
-        }
-    );
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 

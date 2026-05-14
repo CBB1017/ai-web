@@ -1,6 +1,7 @@
 import {createContext, useContext, useState, useEffect, type ReactNode} from 'react';
 import type {AuthContextType, UserInfo} from "../constants/constant.ts";
 import { logInfo, logError } from "../otel.ts";
+import { handleResponseError } from "../api/apiUtils";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -73,19 +74,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
                 setIsAuthenticated(true);
                 logInfo("Login: Success", { userId });
             } else {
-                let errorData;
-                try {
-                    errorData = await response.json();
-                } catch (e) {
-                    // JSON 파싱 실패 (e.g. 502 HTML 에러 페이지)
-                    const error: any = new Error('서버 응답 처리 중 오류가 발생했습니다.');
-                    error.status = response.status;
-                    logError("Login: Non-JSON error response", error, { status: response.status, userId });
-                    throw error;
-                }
-                
-                const error: any = new Error(errorData.error?.detail || errorData.message || '로그인에 실패했습니다.');
-                error.status = response.status;
+                const error = await handleResponseError(response, '로그인에 실패했습니다.');
                 logError("Login: Failed", error, { status: response.status, userId });
                 throw error;
             }

@@ -168,8 +168,8 @@ export function useChatMessages() {
             if (error.name !== 'AbortError') {
                 logError("AI Stream high-level error", error, { roomId: currentRoomId });
                 let displayMessage = error.message;
-                if (error.status === 502 || error.status === 503 || error.status === 504 || 
-                    error.message === 'BACKEND_UNAVAILABLE' || error.message === 'GATEWAY_TIMEOUT') {
+                // 백엔드 가용성 관련 상수는 다국어 처리
+                if (error.message === 'BACKEND_UNAVAILABLE' || error.message === 'GATEWAY_TIMEOUT') {
                     displayMessage = t('chat.highDemandError');
                 }
 

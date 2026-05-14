@@ -1,6 +1,7 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import {useAuth} from "../context/AuthContext.tsx";
 import { logInfo, logError } from "../otel.ts";
+import { handleResponseError } from "../api/apiUtils";
 
 export const useAiStream = () => {
     const { logout } = useAuth();
@@ -36,16 +37,17 @@ export const useAiStream = () => {
                         logout();
                         throw new Error("인증이 만료되었습니다. 다시 로그인해주세요.");
                     }
-                    if (res.status === 502 || res.status === 503 || res.status === 504) {
-                        logError("AI Stream backend unavailable", new Error(`Status ${res.status}`), { roomId });
-                        const error: any = new Error(res.status === 504 ? "GATEWAY_TIMEOUT" : "BACKEND_UNAVAILABLE");
-                        error.status = res.status;
-                        throw error;
-                    }
+                    
                     if (!res.ok) {
-                        const errorBody = await res.json().catch(() => ({}));
-                        logError("AI Stream connection failed", new Error(errorBody.message || `Status ${res.status}`), { roomId, status: res.status });
-                        throw new Error(errorBody.message || `서버 오류 (${res.status})`);
+                        // 502, 503, 504 등 백엔드 가용성 문제와 일반 에러를 통합 처리하되 
+                        // 서버가 보내준 메시지가 있다면 최우선으로 사용
+                        const defaultMsg = res.status === 504 ? "GATEWAY_TIMEOUT" : 
+                                         (res.status === 502 || res.status === 503) ? "BACKEND_UNAVAILABLE" : 
+                                         `서버 오류 (${res.status})`;
+                        
+                        const error = await handleResponseError(res, defaultMsg);
+                        logError("AI Stream connection failed", error, { roomId, status: res.status });
+                        throw error;
                     }
 
                     const newRoomId = res.headers.get('X-Room-Id');

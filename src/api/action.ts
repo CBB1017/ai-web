@@ -1,3 +1,5 @@
+import { handleResponseError } from "./apiUtils";
+
 export interface ActionResponse {
     id: string;
     actionName: string;
@@ -16,9 +18,7 @@ export const fetchRoomActions = async (roomId: string): Promise<ActionResponse[]
     });
 
     if (!response.ok) {
-        const error: any = new Error("액션 내역 로드 실패");
-        error.status = response.status;
-        throw error;
+        throw await handleResponseError(response, "액션 내역 로드 실패");
     }
 
     return response.json();
@@ -30,9 +30,7 @@ export const fetchMyActions = async (): Promise<ActionResponse[]> => {
     });
 
     if (!response.ok) {
-        const error: any = new Error("내 액션 내역 로드 실패");
-        error.status = response.status;
-        throw error;
+        throw await handleResponseError(response, "내 액션 내역 로드 실패");
     }
 
     return response.json();
