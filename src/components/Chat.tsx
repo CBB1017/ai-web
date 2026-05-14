@@ -293,16 +293,28 @@ export default function Chat() {
 
     // 💡 초기 데이터 로드 (생일자, 게시판 포스트)
     useEffect(() => {
-        if (birthdays.length === 0) {
-            fetchBirthdays().then(setBirthdays).catch(err => {
-                logInfo('Failed to fetch birthdays', err);
-            });
-        }
-        if (Object.keys(boardPosts).length === 0) {
-            fetchBoardPosts().then(setBoardPosts).catch(err => {
-                logInfo('Failed to fetch board posts', err);
-            });
-        }
+        // 10초(10000ms) 후에 실행되도록 타이머 설정(로그인 후 MCP로 호출하는 시간 고려)
+        const timer = setTimeout(() => {
+
+            // 생일 데이터 로드
+            if (birthdays.length === 0) {
+                fetchBirthdays()
+                    .then(setBirthdays)
+                    .catch(err => logInfo('Failed to fetch birthdays', err));
+            }
+
+            // 게시판 포스트 로드
+            if (Object.keys(boardPosts).length === 0) {
+                fetchBoardPosts()
+                    .then(setBoardPosts)
+                    .catch(err => logInfo('Failed to fetch board posts', err));
+            }
+
+        }, 10000); // 10초 지연
+
+        // 중요: 컴포넌트가 언마운트되거나 의존성 변경 시 타이머를 제거하여 메모리 누수 방지
+        return () => clearTimeout(timer);
+
     }, [birthdays.length, boardPosts, setBirthdays, setBoardPosts]);
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
