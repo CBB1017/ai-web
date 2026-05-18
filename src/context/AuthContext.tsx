@@ -2,6 +2,7 @@ import {createContext, useContext, useState, useEffect, type ReactNode} from 're
 import type {AuthContextType, UserInfo} from "../constants/constant.ts";
 import { logInfo, logError } from "../otel.ts";
 import { handleResponseError } from "../api/apiUtils";
+import i18n from '../i18n';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -74,7 +75,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
                 setIsAuthenticated(true);
                 logInfo("Login: Success", { userId });
             } else {
-                const error = await handleResponseError(response, '로그인에 실패했습니다.');
+                const error = await handleResponseError(response, i18n.t('error.loginFailed'));
                 logError("Login: Failed", error, { status: response.status, userId });
                 throw error;
             }

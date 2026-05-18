@@ -27,12 +27,12 @@ export default function Login() {
         const pass = (formData.get('pass') as string || '').trim();
 
         if (!userId || !pass) {
-            alert('아이디와 비밀번호를 입력해주세요.');
+            alert(t('login.inputEmpty'));
             return;
         }
 
         if (userId.length > 50 || pass.length > 100) {
-            alert('입력값이 너무 깁니다.');
+            alert(t('login.inputTooLong'));
             return;
         }
         
@@ -58,7 +58,7 @@ export default function Login() {
                         required 
                         maxLength={50}
                         pattern="[a-zA-Z0-9._-]+"
-                        title="영문, 숫자, 특수문자(._-)만 가능합니다."
+                        title={t('login.idPatternHint')}
                         disabled={mutation.isPending}
                     />
                 </div>

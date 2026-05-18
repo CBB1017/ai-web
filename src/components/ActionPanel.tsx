@@ -63,7 +63,7 @@ export default function ActionPanel({ isCollapsed, onToggle, onSidebarOpen, isLo
             case 'FAILED': return t('action.failed');
             case 'ROLLBACK_SUCCESS': return t('action.rollbackSuccess');
             case 'ROLLBACK_FAILED': return t('action.rollbackFailed');
-            case 'RUNNING': return '실행 중...';
+            case 'RUNNING': return t('action.running');
             default: return status;
         }
     };
@@ -122,7 +122,7 @@ export default function ActionPanel({ isCollapsed, onToggle, onSidebarOpen, isLo
                         <div className="empty-actions" style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem' }}>
                             {viewMode === 'ROOM' && !roomId ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
-                                    <span>{t('action.selectRoomPrompt', { defaultValue: '채팅방을 선택해주세요.' })}</span>
+                                    <span>{t('action.selectRoomPrompt')}</span>
                                     {onSidebarOpen && (
                                         <button 
                                             onClick={onSidebarOpen}
@@ -136,12 +136,12 @@ export default function ActionPanel({ isCollapsed, onToggle, onSidebarOpen, isLo
                                                 cursor: 'pointer'
                                             }}
                                         >
-                                            {t('action.openSidebar', { defaultValue: '사이드바 열기' })}
+                                            {t('action.openSidebar')}
                                         </button>
                                     )}
                                 </div>
                             ) : (
-                                t('action.noActions', { defaultValue: '표시할 액션이 없습니다.' })
+                                t('action.noActions')
                             )}
                         </div>
                     )}

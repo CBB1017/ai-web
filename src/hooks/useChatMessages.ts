@@ -105,7 +105,7 @@ export function useChatMessages() {
         setIsStreaming(true);
         setLastIntentId(undefined);
         
-        const isEmailAction = textToSubmit.includes('이메일') || textToSubmit.includes('요약');
+        const isEmailAction = textToSubmit.includes('이메일') || textToSubmit.includes('요약') || textToSubmit.toLowerCase().includes('email') || textToSubmit.toLowerCase().includes('summary');
         if (isEmailAction) {
             setIsActionInProgress(true);
         }
@@ -114,7 +114,7 @@ export function useChatMessages() {
         const isNewChat = !currentRoomId;
 
         // 💡 ASSISTANT 메시지에 즉시 안내 문구 표시
-        const initialAssistantContent = isEmailAction ? `⏳ **이메일 요약 작업을 시작합니다.**\n결과가 준비되면 이 메시지가 업데이트됩니다.` : '';
+        const initialAssistantContent = isEmailAction ? t('chat.emailActionStarting') : '';
 
         setMessages(prev => [
             ...prev,
@@ -173,7 +173,7 @@ export function useChatMessages() {
                     displayMessage = t('chat.highDemandError');
                 }
 
-                let errorMessage = `⚠️ 오류가 발생했습니다.\n\n[상세 내용]\n${displayMessage || '알 수 없는 서버 오류'}`;
+                let errorMessage = t('chat.genericError', { message: displayMessage || t('chat.unknownError') });
                 setMessages(prev => {
                     const lastMsg = prev[prev.length - 1];
                     if (lastMsg?.role === 'ASSISTANT') {

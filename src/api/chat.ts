@@ -1,10 +1,11 @@
 import type {ChatRoom} from "../constants/constant.ts";
 import { handleResponseError } from "./apiUtils";
+import i18n from '../i18n';
 
 export const fetchChatMessages = async (roomId: string) => {
     const response = await fetch(`/api/v1/chat/room/${roomId}/messages`);
     if (!response.ok) {
-        throw await handleResponseError(response, "History 로드 실패");
+        throw await handleResponseError(response, i18n.t('error.historyLoadFailed'));
     }
     return response.json();
 };
@@ -12,12 +13,12 @@ export const fetchChatMessages = async (roomId: string) => {
 export const fetchChatRooms = async (): Promise<ChatRoom[]> => {
     const res = await fetch('/api/v1/chat/rooms', { credentials: 'include' });
     if (!res.ok) {
-        throw await handleResponseError(res, '채팅방 목록을 불러오는데 실패했습니다.');
+        throw await handleResponseError(res, i18n.t('error.roomListLoadFailed'));
     }
     return res.json();
 };
 
-export const fetchSaveChatRoom = async (title: string = '새로운 대화'): Promise<ChatRoom> => {
+export const fetchSaveChatRoom = async (title: string = i18n.t('sidebar.emptyChat')): Promise<ChatRoom> => {
     const res = await fetch('/api/v1/chat/room', {
         method: 'POST',
         credentials: 'include',
@@ -26,7 +27,7 @@ export const fetchSaveChatRoom = async (title: string = '새로운 대화'): Pro
     });
 
     if (!res.ok) {
-        throw await handleResponseError(res, '채팅방 저장에 실패했습니다.');
+        throw await handleResponseError(res, i18n.t('error.roomSaveFailed'));
     }
     return res.json();
 };

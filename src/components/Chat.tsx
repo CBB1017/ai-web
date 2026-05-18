@@ -11,14 +11,15 @@ import { useTranslation } from 'react-i18next';
 import {useSseSubscription} from "../hooks/useSseSubscription";
 import {logError, logInfo} from "../otel.ts";
 import {fetchBirthdays} from "../api/birthday.ts";
-import {fetchBoardPosts} from "../api/board.ts";
-import {selectedRoomAtom, birthdaysAtom, boardPostsAtom, isActionInProgressAtom} from "../store/store.ts";
+import {fetchBoardPosts, fetchRecentPosts} from "../api/board.ts";
+import {selectedRoomAtom, birthdaysAtom, boardPostsAtom, recentPostsAtom, isActionInProgressAtom} from "../store/store.ts";
 
 function LoadingNotice() {
     const { t } = useTranslation();
     const [index, setIndex] = useState(-1); // -1 means showing "Generating..."
     const [birthdays] = useAtom(birthdaysAtom);
     const [boardPosts] = useAtom(boardPostsAtom);
+    const [recentPosts] = useAtom(recentPostsAtom);
     const [combinedNotices, setCombinedNotices] = useState<any[]>([]);
 
     useEffect(() => {
@@ -35,6 +36,12 @@ function LoadingNotice() {
             link: post.url
         }));
 
+        const recentNotices = recentPosts.map(post => ({
+            type: 'NOTICE',
+            title: post.title,
+            link: post.url
+        }));
+
         // 랜덤 셔플 함수
         const shuffle = (array: any[]) => {
             const newArray = [...array];
@@ -45,9 +52,9 @@ function LoadingNotice() {
             return newArray;
         };
 
-        const combined = shuffle([...boardNotices, ...birthdayNotices]);
+        const combined = shuffle([...boardNotices, ...recentNotices, ...birthdayNotices]);
         setCombinedNotices(combined);
-    }, [birthdays, boardPosts]);
+    }, [birthdays, boardPosts, recentPosts]);
 
     useEffect(() => {
         if (combinedNotices.length === 0) return;
@@ -87,6 +94,7 @@ function TopNoticeBar() {
     const { t } = useTranslation();
     const [birthdays] = useAtom(birthdaysAtom);
     const [boardPosts] = useAtom(boardPostsAtom);
+    const [recentPosts] = useAtom(recentPostsAtom);
     const [index, setIndex] = useState(0);
     const [combinedNotices, setCombinedNotices] = useState<any[]>([]);
 
@@ -103,8 +111,14 @@ function TopNoticeBar() {
             link: post.url
         }));
 
-        setCombinedNotices([...boardNotices, ...birthdayNotices]);
-    }, [birthdays, boardPosts]);
+        const recentNotices = recentPosts.map(post => ({
+            type: 'NOTICE',
+            title: post.title,
+            link: post.url
+        }));
+
+        setCombinedNotices([...boardNotices, ...recentNotices, ...birthdayNotices]);
+    }, [birthdays, boardPosts, recentPosts]);
 
     useEffect(() => {
         if (combinedNotices.length <= 1) return;
@@ -130,7 +144,7 @@ function TopNoticeBar() {
 
     return (
         <div className="top-notice-bar">
-            <span className="notice-badge">{current.type === 'NOTICE' ? t('chat.noticeBadge', { defaultValue: '공지' }) : t('chat.birthdayBadge', { defaultValue: '생일' })}</span>
+            <span className="notice-badge">{current.type === 'NOTICE' ? t('chat.noticeBadge') : t('chat.birthdayBadge')}</span>
             <div className="notice-content-wrapper">
                 <div key={index} className="notice-text-item fadeIn">
                     {current.type === 'NOTICE' ? (
@@ -138,7 +152,7 @@ function TopNoticeBar() {
                             {current.title}
                         </a>
                     ) : (
-                        <span>{t('chat.birthdayMessage', { name: current.name, day: current.day, defaultValue: `${current.day}일은 ${current.name}님의 생일입니다! 🎉` })}</span>
+                        <span>{t('chat.birthdayMessage', { name: current.name, day: current.day })}</span>
                     )}
                 </div>
             </div>
@@ -251,6 +265,10 @@ export default function Chat() {
         (updatedBoardPosts) => {
             logInfo('SSE: Received board update', updatedBoardPosts);
             setBoardPosts(updatedBoardPosts);
+        },
+        (updatedRecentPosts) => {
+            logInfo('SSE: Received recent board update', updatedRecentPosts);
+            setRecentPosts(updatedRecentPosts);
         }
     );
 
@@ -268,7 +286,7 @@ export default function Chat() {
             ]);
         } catch (err) {
             logError('Foreground sync/reconnect failed', err);
-            addErrorMessage(t('chat.serverError', { defaultValue: '서버와 연결이 원활하지 않습니다. 페이지를 새로고침 해주세요.' }));
+            addErrorMessage(t('chat.serverError'));
         } finally {
             // 💡 데이터 로드가 끝나면(성공/실패 무관) 비동기 액션 로딩 상태 해제
             setIsActionInProgress(false);
@@ -289,6 +307,8 @@ export default function Chat() {
     const [birthdays] = useAtom(birthdaysAtom);
     const setBoardPosts = useSetAtom(boardPostsAtom);
     const [boardPosts] = useAtom(boardPostsAtom);
+    const setRecentPosts = useSetAtom(recentPostsAtom);
+    const [recentPosts] = useAtom(recentPostsAtom);
     const [isActionInProgress, setIsActionInProgress] = useAtom(isActionInProgressAtom);
 
     // 💡 초기 데이터 로드 (생일자, 게시판 포스트)
@@ -310,12 +330,19 @@ export default function Chat() {
                     .catch(err => logInfo('Failed to fetch board posts', err));
             }
 
+            // 최신 게시글 로드
+            if (recentPosts.length === 0) {
+                fetchRecentPosts()
+                    .then(setRecentPosts)
+                    .catch(err => logInfo('Failed to fetch recent posts', err));
+            }
+
         }, 10000); // 10초 지연
 
         // 중요: 컴포넌트가 언마운트되거나 의존성 변경 시 타이머를 제거하여 메모리 누수 방지
         return () => clearTimeout(timer);
 
-    }, [birthdays.length, boardPosts, setBirthdays, setBoardPosts]);
+    }, [birthdays.length, boardPosts, recentPosts.length, setBirthdays, setBoardPosts, setRecentPosts]);
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -411,9 +438,9 @@ export default function Chat() {
 
     const getModeInfo = () => {
         if (!lastIntentId) return null;
-        if (lastIntentId === 'POLICY') return { label: 'RAG', className: 'rag' };
-        if (lastIntentId === 'GENERAL') return { label: '일반', className: 'general' };
-        return { label: 'MCP', className: 'mcp' };
+        if (lastIntentId === 'POLICY') return { label: t('chat.modeRagBadge'), className: 'rag' };
+        if (lastIntentId === 'GENERAL') return { label: t('chat.modeGeneralBadge'), className: 'general' };
+        return { label: t('chat.modeMcpBadge'), className: 'mcp' };
     };
 
     const modeInfo = getModeInfo();

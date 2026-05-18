@@ -11,7 +11,8 @@ export function useSseSubscription(
     onTitleUpdate: (roomId: string, title: string) => void,
     onActionUpdate: (action: any) => void,
     onBirthdayUpdate?: (birthdays: BirthdayResponse[]) => void,
-    onBoardUpdate?: (boardPosts: any) => void
+    onBoardUpdate?: (boardPosts: any) => void,
+    onRecentBoardUpdate?: (recentPosts: any) => void
 ) {
     const { isAuthenticated } = useAuth();
     const setIsActionInProgress = useSetAtom(isActionInProgressAtom);
@@ -24,6 +25,7 @@ export function useSseSubscription(
     const onActionUpdateRef = useRef(onActionUpdate);
     const onBirthdayUpdateRef = useRef(onBirthdayUpdate);
     const onBoardUpdateRef = useRef(onBoardUpdate);
+    const onRecentBoardUpdateRef = useRef(onRecentBoardUpdate);
 
     // 알림 권한 요청
     useEffect(() => {
@@ -44,6 +46,7 @@ export function useSseSubscription(
         onActionUpdateRef.current = onActionUpdate;
         onBirthdayUpdateRef.current = onBirthdayUpdate;
         onBoardUpdateRef.current = onBoardUpdate;
+        onRecentBoardUpdateRef.current = onRecentBoardUpdate;
     });
 
     const eventSourceRef = useRef<EventSource | null>(null);
@@ -66,6 +69,7 @@ export function useSseSubscription(
         eventSource.addEventListener('action-list-update', handleActionUpdate);
         eventSource.addEventListener('birthday-update', handleBirthdayUpdate);
         eventSource.addEventListener('board-update', handleBoardUpdate);
+        eventSource.addEventListener('recent-board-update', handleRecentBoardUpdate);
         eventSource.addEventListener('error', handleErrorEvent);
 
         eventSource.onopen = () => {
@@ -151,6 +155,16 @@ export function useSseSubscription(
             if (onBoardUpdateRef.current) onBoardUpdateRef.current(data);
         } catch (e) {
             logError('SSE: Board update parsing error', e);
+        }
+    };
+
+    const handleRecentBoardUpdate = (event: MessageEvent) => {
+        if (!event.data || event.data === 'undefined') return;
+        try {
+            const data = JSON.parse(event.data);
+            if (onRecentBoardUpdateRef.current) onRecentBoardUpdateRef.current(data);
+        } catch (e) {
+            logError('SSE: Recent board update parsing error', e);
         }
     };
 
